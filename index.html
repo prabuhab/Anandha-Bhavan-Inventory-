@@ -274,13 +274,13 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 <footer>ANANDHA BHAVAN • PURE VEG SOUTH INDIAN RESTAURANT - WEMBLEY • Master Inventory & Food Cost Control</footer>
 
 <!-- Stock modal -->
-<div class="modal" id="stockModal"><div class="modalbox data-entry"><h2>Stock Entry</h2><p class="subtitle">Enter Opening Stock and Received Supplies. Kitchen Sent is taken automatically from Kitchen Movement. Closing Stock = Opening + Received − Kitchen Sent.</p><div class="formgrid">
+<div class="modal" id="stockModal"><div class="modalbox data-entry"><h2>Stock Entry</h2><p class="subtitle">Enter Opening Stock, Received Qty and Kitchen Movement Qty. Closing Stock = Opening + Received − Kitchen Movement.</p><div class="formgrid">
  <div class="field"><label>Date *</label><input type="date" id="eDate"></div><div class="field"><label>Time *</label><input type="time" id="eTime" value="08:00"></div>
  <div class="field"><label>Frequency</label><select id="eFreq"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div><div class="field"><label>Supplier</label><select id="eSupplier"></select></div>
  <div class="field span2"><label>Item *</label><select id="eItem"></select></div>
  <div class="field"><label>Unit</label><input id="eUnit"></div><div class="field"><label>Book Price £</label><input type="number" step="0.0001" id="ePrice"></div>
  <div class="field"><label>Opening Qty *</label><input type="number" step="0.001" id="eOpen"></div><div class="field"><label>Received Qty</label><input type="number" step="0.001" id="eRecv" value="0"></div>
- <div class="field"><label>Kitchen Sent Qty</label><input type="number" step="0.001" id="eKitchen" readonly></div><div class="field"><label>Closing Qty (Auto)</label><input type="number" step="0.001" id="eClose" readonly></div><div class="field"><label>Reorder Level</label><input type="number" step="0.001" id="eReorder"></div>
+ <div class="field"><label>Kitchen Movement Qty</label><input type="number" step="0.001" min="0" id="eKitchen" value="0"></div><div class="field"><label>Closing Qty (Auto)</label><input type="number" step="0.001" id="eClose" readonly></div><div class="field"><label>Reorder Level</label><input type="number" step="0.001" id="eReorder"></div>
  <div class="field span2"><label>Remarks</label><input id="eRemark" placeholder="Stock count / purchase / issue note"></div>
  </div><div class="actions"><button class="btn soft" onclick="closeModals()">Cancel</button><button class="btn green" onclick="saveStock()">Save Stock Entry</button></div></div></div>
 
@@ -441,8 +441,8 @@ async function cloudSignOut(){if(cloudClient)await cloudClient.auth.signOut();cl
 function save(){try{localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));}catch(e){console.warn(e);} cloudSave();}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function money(x){return "£"+(Number(x)||0).toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2});}
-function autoClosingFor(e){return (+e.open||0)+(+e.received||0)-kitchenMovementFor(e);}
-function used(e){return kitchenMovementFor(e);}
+function used(e){return e.kitchen!==undefined?(+e.kitchen||0):kitchenMovementFor(e);}
+function autoClosingFor(e){return (+e.open||0)+(+e.received||0)-used(e);}
 function kitchenMovementFor(e){return (db.movements||[]).filter(m=>m.date===e.date&&m.item===e.item&&(!m.supplier||m.supplier===e.supplier)&&m.type==='Kitchen Issue').reduce((sum,m)=>sum+(+m.qty||0),0);}
 function sortedItems(){
  return db.items.slice().sort((a,b)=>{
@@ -499,7 +499,7 @@ function renderStock(){
  let q=($("stockSearch")?.value||"").toLowerCase(),freq=$("stockFreq")?.value||"All";
  let a=sortedStockEntries().filter(e=>(freq==="All"||e.frequency===freq)&&((e.item+" "+e.category+" "+e.supplier).toLowerCase().includes(q)));
  $("stockBody").innerHTML=a.length?a.map(e=>{
-  let km=kitchenMovementFor(e),autoClose=autoClosingFor(e),u=km,closeVal=autoClose*e.price,useVal=u*e.price;
+  let km=used(e),autoClose=autoClosingFor(e),u=km,closeVal=autoClose*e.price,useVal=u*e.price;
   return `<tr><td>${e.date}</td><td>${e.time}</td><td>${e.frequency}</td><td>${esc(e.supplier)}</td><td><b>${esc(e.item)}</b></td><td>${esc(e.category)}</td><td>${esc(e.unit)}</td>
   <td>${e.open}</td><td>${e.received}</td><td>${km.toFixed(3)}</td><td><b>${autoClose.toFixed(3)}</b></td><td class="${u<0?'negative':''}"><b>${u.toFixed(3)}</b></td><td class="money">${money(e.price)}</td><td class="money">${money(closeVal)}</td><td class="money">${money(useVal)}</td><td>${esc(e.remark||"")}</td>
   <td class="no-print"><button class="btn soft" onclick="editStock('${e.id}')">Edit</button> <button class="btn red" onclick="deleteStock('${e.id}')">Delete</button></td></tr>`;}).join(""):`<tr><td colspan="17" class="empty">No stock entries yet. Use + Add Stock Entry.</td></tr>`;
@@ -515,22 +515,20 @@ $("eItem").addEventListener("change",()=>{setEntryItem($("eItem").value);updateS
 $("eDate").addEventListener("change",updateStockAutoFields);
 $("eOpen").addEventListener("input",updateStockAutoFields);
 $("eRecv").addEventListener("input",updateStockAutoFields);
+$("eKitchen").addEventListener("input",updateStockAutoFields);
 function updateStockAutoFields(){
- let item=itemById($("eItem").value);
- if(!item){$("eKitchen").value="0.000";$("eClose").value=((+$("eOpen").value||0)+(+$("eRecv").value||0)).toFixed(3);return;}
- let date=$("eDate").value;
- let km=(db.movements||[]).filter(m=>m.date===date&&m.item===item.name&&(!m.supplier||m.supplier===item.supplier)&&m.type==='Kitchen Issue').reduce((sum,m)=>sum+(+m.qty||0),0);
- let close=(+$("eOpen").value||0)+(+$("eRecv").value||0)-km;
- $("eKitchen").value=km.toFixed(3);$("eClose").value=close.toFixed(3);
+ let open=+$("eOpen").value||0;
+ let received=+$("eRecv").value||0;
+ let kitchen=+$("eKitchen").value||0;
+ $("eClose").value=(open+received-kitchen).toFixed(3);
 }
 function saveStock(){
  let id=$("eItem").value,i=itemById(id);if(!i)return alert("Please select a valid Item.");
- let km=(db.movements||[]).filter(m=>m.date===$("eDate").value&&m.item===i.name&&(!m.supplier||m.supplier===i.supplier)&&m.type==='Kitchen Issue').reduce((sum,m)=>sum+(+m.qty||0),0);
- let open=+$("eOpen").value||0,received=+$("eRecv").value||0;
- let e={id:editEntryId||Date.now().toString(),date:$("eDate").value,time:$("eTime").value,frequency:$("eFreq").value,supplier:i.supplier,item:i.name,category:i.category,unit:$("eUnit").value||i.unit,open,received,close:open+received-km,price:+$("ePrice").value||0,reorder:+$("eReorder").value||0,remark:$("eRemark").value};
+ let open=+$("eOpen").value||0,received=+$("eRecv").value||0,kitchen=+$("eKitchen").value||0;
+ let e={id:editEntryId||Date.now().toString(),date:$("eDate").value,time:$("eTime").value,frequency:$("eFreq").value,supplier:i.supplier,item:i.name,category:i.category,unit:$("eUnit").value||i.unit,open,received,kitchen,close:open+received-kitchen,price:+$("ePrice").value||0,reorder:+$("eReorder").value||0,remark:$("eRemark").value};
  if(!e.date||!e.item)return alert("Please enter Date and Item.");if(editEntryId)db.entries=db.entries.map(x=>x.id===editEntryId?e:x);else db.entries.push(e);save();closeModals();refreshAll();
 }
-function editStock(id){let e=db.entries.find(x=>x.id===id);if(!e)return;editEntryId=id;$("stockModal").classList.add("show");populateSelects();let i=itemByName(e.item,e.supplier);$("eDate").value=e.date;$("eTime").value=e.time;$("eFreq").value=e.frequency;$("eItem").value=i?.id||"";$("eUnit").value=e.unit;$("ePrice").value=e.price;$("eOpen").value=e.open;$("eRecv").value=e.received;$("eReorder").value=e.reorder||0;$("eRemark").value=e.remark||"";updateStockAutoFields();}
+function editStock(id){let e=db.entries.find(x=>x.id===id);if(!e)return;editEntryId=id;$("stockModal").classList.add("show");populateSelects();let i=itemByName(e.item,e.supplier);$("eDate").value=e.date;$("eTime").value=e.time;$("eFreq").value=e.frequency;$("eItem").value=i?.id||"";$("eUnit").value=e.unit;$("ePrice").value=e.price;$("eOpen").value=e.open;$("eRecv").value=e.received;$("eKitchen").value=(e.kitchen!==undefined?(+e.kitchen||0):kitchenMovementFor(e));$("eReorder").value=e.reorder||0;$("eRemark").value=e.remark||"";updateStockAutoFields();}
 function deleteStock(id){if(confirm("Delete this stock entry?")){db.entries=db.entries.filter(e=>e.id!==id);save();refreshAll();}}
 function openMovement(id=null){
  editMovementId=id;

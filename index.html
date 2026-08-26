@@ -77,7 +77,7 @@ td input,td select{width:100%;min-width:80px;padding:7px;font-size:12px}
 .chartrow{display:grid;grid-template-columns:110px 1fr 90px;gap:9px;align-items:center;margin:7px 0;font-size:11px}
 .bar{height:16px;background:#edf2ed;border-radius:20px;overflow:hidden}.bar i{display:block;height:100%;background:var(--green);min-width:2px}
 .filecard{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:9px;margin:7px 0}
-.signature{border:2px dashed #bccabd;border-radius:10px;background:#fff;touch-action:none;width:100%;height:210px}
+.signature{display:block;border:2px dashed #91a995;border-radius:12px;background:#fff;touch-action:none;width:100%;height:210px;min-height:210px;cursor:crosshair;-webkit-user-select:none;user-select:none}
 footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 @media(max-width:1050px){.grid4{grid-template-columns:repeat(2,1fr)}.grid3{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
 @media(max-width:650px){.brandrow{align-items:flex-start}.logo{width:64px;height:64px}.brand h1{font-size:20px}main{padding:10px}.grid4,.grid3{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}.span2{grid-column:auto}}
@@ -251,7 +251,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
  <div class="titlebar"><div><h2>Bills, Signatures & Attachments</h2><p class="subtitle">Upload supplier bills, invoices, stock sheets or signatures. Files are stored locally in this browser.</p></div></div>
  <div class="grid2">
   <div class="card"><h3>Upload Bill / Invoice / Stock Document</h3><div class="field"><label>Document</label><input type="file" id="docFile" accept="image/*,.pdf,.csv,.xlsx,.xls,.doc,.docx"></div><div class="field" style="margin-top:10px"><label>Description</label><input id="docDesc" placeholder="e.g. KTC invoice 15 Aug 2026"></div><button class="btn green" style="margin-top:10px" onclick="saveDocument()">Upload & Save</button><div id="docList" style="margin-top:10px"></div></div>
-  <div class="card"><h3>Manager / Receiver Signature</h3><p class="subtitle">Sign using finger or mouse, then save with date/time.</p><canvas class="signature" id="sig"></canvas><div class="actions"><button class="btn soft" onclick="clearSig()">Clear</button><button class="btn green" onclick="saveSignature()">Save Signature</button></div><div id="sigList"></div></div>
+  <div class="card"><h3>Chef / Receiver Signature</h3><p class="subtitle">Choose who is signing, sign using finger or mouse, then save with date/time.</p><div class="field" style="margin-bottom:10px"><label>Sign As</label><select id="sigRole"><option>Chef</option><option>Receiver</option></select></div><div class="notice" style="margin:10px 0 8px"><b>Sign inside the box below with your finger.</b></div><canvas class="signature" id="sig"></canvas><div class="actions"><button class="btn soft" onclick="clearSig()">Clear</button><button class="btn green" onclick="saveSignature()">Save Signature</button></div><div id="sigList"></div></div>
  </div>
 </section>
 
@@ -274,7 +274,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 <footer>ANANDHA BHAVAN • PURE VEG SOUTH INDIAN RESTAURANT - WEMBLEY • Master Inventory & Food Cost Control</footer>
 
 <!-- Stock modal -->
-<div class="modal" id="stockModal"><div class="modalbox data-entry"><h2>Stock Entry</h2><p class="subtitle">Enter Opening Stock, Received Qty and Kitchen Movement Qty. Closing Stock = Opening + Received − Kitchen Movement.</p><div class="formgrid">
+<div class="modal" id="stockModal"><div class="modalbox data-entry"><h2>Stock Entry</h2><p class="subtitle">For a new stock entry, Opening Qty is filled automatically from that item’s latest previous Closing Qty. Closing Stock = Opening + Received − Kitchen Movement.</p><div class="formgrid">
  <div class="field"><label>Date *</label><input type="date" id="eDate"></div><div class="field"><label>Time *</label><input type="time" id="eTime" value="08:00"></div>
  <div class="field"><label>Frequency</label><select id="eFreq"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div><div class="field"><label>Supplier</label><select id="eSupplier"></select></div>
  <div class="field span2"><label>Item *</label><select id="eItem"></select></div>
@@ -466,7 +466,7 @@ function sortedStockEntries(){
 }
 function itemById(id){return db.items.find(i=>i.id===id)||null;}
 function itemByName(n,supplier){return db.items.find(i=>i.name===n&&(!supplier||i.supplier===supplier))||null;}
-function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();window.scrollTo({top:0,behavior:"smooth"});}
+function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);window.scrollTo({top:0,behavior:"smooth"});}
 function scrollTable(id,n){$(id).scrollBy({left:n,behavior:"smooth"});}
 function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();}
 function populateSelects(){
@@ -504,15 +504,44 @@ function renderStock(){
   <td>${e.open}</td><td>${e.received}</td><td>${km.toFixed(3)}</td><td><b>${autoClose.toFixed(3)}</b></td><td class="${u<0?'negative':''}"><b>${u.toFixed(3)}</b></td><td class="money">${money(e.price)}</td><td class="money">${money(closeVal)}</td><td class="money">${money(useVal)}</td><td>${esc(e.remark||"")}</td>
   <td class="no-print"><button class="btn soft" onclick="editStock('${e.id}')">Edit</button> <button class="btn red" onclick="deleteStock('${e.id}')">Delete</button></td></tr>`;}).join(""):`<tr><td colspan="17" class="empty">No stock entries yet. Use + Add Stock Entry.</td></tr>`;
 }
+function previousClosingForItem(itemName,supplier,date){
+ let rows=(db.entries||[]).filter(e=>e.item===itemName&&(!supplier||e.supplier===supplier)&&e.date<date)
+   .sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.time||"").localeCompare(String(a.time||"")));
+ if(!rows.length)return 0;
+ let prev=rows[0];
+ return +(prev.close!==undefined?prev.close:autoClosingFor(prev))||0;
+}
+function fillOpeningFromPrevious(){
+ if(editEntryId)return;
+ let i=itemById($("eItem").value);
+ $("eOpen").value=i?previousClosingForItem(i.name,i.supplier,$("eDate").value):0;
+ updateStockAutoFields();
+}
+function filterStockItemsBySupplier(preferredItemId=""){
+ let supplier=$("eSupplier").value||"";
+ let items=sortedItems().filter(i=>!supplier||i.supplier===supplier);
+ $("eItem").innerHTML=items.map(i=>`<option value="${esc(i.id)}">${esc(i.name)} — ${esc(i.category)}</option>`).join("");
+ let chosen=items.find(i=>i.id===preferredItemId)||items[0]||null;
+ if(chosen){
+   $("eItem").value=chosen.id;
+   setEntryItem(chosen.id);
+ }else{
+   $("eItem").innerHTML='<option value="">No items for this supplier</option>';
+   $("eUnit").value="";$("ePrice").value="";$("eReorder").value=0;
+ }
+ if(!editEntryId)fillOpeningFromPrevious();
+}
 function openStock(){
- editEntryId=null;$("stockModal").classList.add("show");$("eDate").value=INITIAL_STOCK_DATE;$("eTime").value=INITIAL_STOCK_TIME;$("eFreq").value=db.settings.frequency||"Daily";$("eOpen").value=0;$("eRecv").value=0;$("eKitchen").value=0;$("eClose").value=0;$("eReorder").value=0;$("eRemark").value="";populateSelects();let first=sortedItems()[0];setEntryItem(first?.id);
+ editEntryId=null;$("stockModal").classList.add("show");$("eDate").value=TODAY;$("eTime").value=new Date().toTimeString().slice(0,5);$("eFreq").value=db.settings.frequency||"Daily";$("eRecv").value=0;$("eKitchen").value=0;$("eClose").value=0;$("eReorder").value=0;$("eRemark").value="";populateSelects();
+ let firstSupplier=$("eSupplier").value||"";filterStockItemsBySupplier();
 }
 function setEntryItem(id){
  let i=itemById(id);$("eItem").value=id||"";if(!i){$("eSupplier").value="";$("eUnit").value="";$("ePrice").value="";$("eReorder").value=0;return;}
  $("eSupplier").value=i.supplier;$("eUnit").value=i.unit;$("ePrice").value=i.price;$("eReorder").value=i.reorder||0;
 }
-$("eItem").addEventListener("change",()=>{setEntryItem($("eItem").value);updateStockAutoFields();});
-$("eDate").addEventListener("change",updateStockAutoFields);
+$("eSupplier").addEventListener("change",()=>filterStockItemsBySupplier());
+$("eItem").addEventListener("change",()=>{setEntryItem($("eItem").value);fillOpeningFromPrevious();});
+$("eDate").addEventListener("change",fillOpeningFromPrevious);
 $("eOpen").addEventListener("input",updateStockAutoFields);
 $("eRecv").addEventListener("input",updateStockAutoFields);
 $("eKitchen").addEventListener("input",updateStockAutoFields);
@@ -528,7 +557,7 @@ function saveStock(){
  let e={id:editEntryId||Date.now().toString(),date:$("eDate").value,time:$("eTime").value,frequency:$("eFreq").value,supplier:i.supplier,item:i.name,category:i.category,unit:$("eUnit").value||i.unit,open,received,kitchen,close:open+received-kitchen,price:+$("ePrice").value||0,reorder:+$("eReorder").value||0,remark:$("eRemark").value};
  if(!e.date||!e.item)return alert("Please enter Date and Item.");if(editEntryId)db.entries=db.entries.map(x=>x.id===editEntryId?e:x);else db.entries.push(e);save();closeModals();refreshAll();
 }
-function editStock(id){let e=db.entries.find(x=>x.id===id);if(!e)return;editEntryId=id;$("stockModal").classList.add("show");populateSelects();let i=itemByName(e.item,e.supplier);$("eDate").value=e.date;$("eTime").value=e.time;$("eFreq").value=e.frequency;$("eItem").value=i?.id||"";$("eUnit").value=e.unit;$("ePrice").value=e.price;$("eOpen").value=e.open;$("eRecv").value=e.received;$("eKitchen").value=(e.kitchen!==undefined?(+e.kitchen||0):kitchenMovementFor(e));$("eReorder").value=e.reorder||0;$("eRemark").value=e.remark||"";updateStockAutoFields();}
+function editStock(id){let e=db.entries.find(x=>x.id===id);if(!e)return;editEntryId=id;$("stockModal").classList.add("show");populateSelects();let i=itemByName(e.item,e.supplier);$("eDate").value=e.date;$("eTime").value=e.time;$("eFreq").value=e.frequency;$("eSupplier").value=e.supplier||"";filterStockItemsBySupplier(i?.id||"");$("eUnit").value=e.unit;$("ePrice").value=e.price;$("eOpen").value=e.open;$("eRecv").value=e.received;$("eKitchen").value=(e.kitchen!==undefined?(+e.kitchen||0):kitchenMovementFor(e));$("eReorder").value=e.reorder||0;$("eRemark").value=e.remark||"";updateStockAutoFields();}
 function deleteStock(id){if(confirm("Delete this stock entry?")){db.entries=db.entries.filter(e=>e.id!==id);save();refreshAll();}}
 function openMovement(id=null){
  editMovementId=id;
@@ -700,11 +729,74 @@ function saveDocument(){
 }
 function renderDocs(){$("docList").innerHTML=db.docs.length?db.docs.slice().reverse().map(d=>`<div class="filecard"><div>📎 <b>${esc(d.name)}</b><small> • ${d.date} • ${esc(d.desc||"")}</small></div><div><a class="btn soft" href="${d.data}" download="${esc(d.name)}">Open</a> <button class="btn red" onclick="deleteDoc(${d.id})">Delete</button></div></div>`).join(""):'<div class="empty">No documents uploaded.</div>';renderSignatures();}
 function deleteDoc(id){db.docs=db.docs.filter(d=>d.id!==id);save();renderDocs();}
-let sigCtx,sigDrawing=false;
-function initSig(){let c=$("sig"),rect=c.getBoundingClientRect(),ratio=window.devicePixelRatio||1;c.width=rect.width*ratio;c.height=rect.height*ratio;sigCtx=c.getContext("2d");sigCtx.scale(ratio,ratio);sigCtx.lineWidth=2;sigCtx.lineCap="round";c.onpointerdown=e=>{sigDrawing=true;sigCtx.beginPath();sigCtx.moveTo(e.offsetX,e.offsetY)};c.onpointermove=e=>{if(sigDrawing){sigCtx.lineTo(e.offsetX,e.offsetY);sigCtx.stroke()}};c.onpointerup=()=>sigDrawing=false;c.onpointerleave=()=>sigDrawing=false;}
-function clearSig(){if(sigCtx)sigCtx.clearRect(0,0,$("sig").width,$("sig").height);}
-function saveSignature(){let data=$("sig").toDataURL("image/png");db.signatures.push({id:Date.now(),date:new Date().toLocaleString("en-GB"),data});save();clearSig();renderSignatures();}
-function renderSignatures(){$("sigList").innerHTML=db.signatures.length?db.signatures.slice().reverse().map(s=>`<div class="filecard"><span>✍️ ${s.date}</span><span><img src="${s.data}" style="width:120px;max-height:45px;object-fit:contain"> <button class="btn red" onclick="deleteSig(${s.id})">Delete</button></span></div>`).join(""):"";}
+let sigCtx,sigDrawing=false,sigHasInk=false,sigRatio=1;
+
+function initSig(){
+ const c=$("sig");
+ if(!c)return;
+ const rect=c.getBoundingClientRect();
+ if(rect.width<20 || rect.height<20)return;
+ sigRatio=Math.max(1,window.devicePixelRatio||1);
+ c.width=Math.round(rect.width*sigRatio);
+ c.height=Math.round(rect.height*sigRatio);
+ sigCtx=c.getContext("2d");
+ sigCtx.setTransform(sigRatio,0,0,sigRatio,0,0);
+ sigCtx.lineWidth=2.5;
+ sigCtx.lineCap="round";
+ sigCtx.lineJoin="round";
+ sigCtx.strokeStyle="#173b2a";
+ c.style.touchAction="none";
+
+ const point=(e)=>{
+   const r=c.getBoundingClientRect();
+   return {x:e.clientX-r.left,y:e.clientY-r.top};
+ };
+ const start=(e)=>{
+   e.preventDefault();
+   sigDrawing=true;
+   sigHasInk=true;
+   try{c.setPointerCapture(e.pointerId);}catch(_){}
+   const p=point(e);
+   sigCtx.beginPath();
+   sigCtx.moveTo(p.x,p.y);
+ };
+ const move=(e)=>{
+   if(!sigDrawing)return;
+   e.preventDefault();
+   const p=point(e);
+   sigCtx.lineTo(p.x,p.y);
+   sigCtx.stroke();
+ };
+ const stop=(e)=>{
+   if(!sigDrawing)return;
+   e.preventDefault();
+   sigDrawing=false;
+   try{c.releasePointerCapture(e.pointerId);}catch(_){}
+ };
+
+ c.onpointerdown=start;
+ c.onpointermove=move;
+ c.onpointerup=stop;
+ c.onpointercancel=stop;
+ c.onpointerleave=(e)=>{if(e.buttons===0)stop(e);};
+}
+
+function clearSig(){
+ const c=$("sig");
+ if(!c || !sigCtx)return;
+ const r=c.getBoundingClientRect();
+ sigCtx.clearRect(0,0,r.width,r.height);
+ sigHasInk=false;
+}
+
+function saveSignature(){
+ if(!sigHasInk)return alert("Please sign in the box first.");
+ const c=$("sig");
+ let data=c.toDataURL("image/png"),role=$("sigRole")?.value||"Chef";
+ db.signatures.push({id:Date.now(),date:new Date().toLocaleString("en-GB"),role,data});
+ save();clearSig();renderSignatures();
+}
+function renderSignatures(){$("sigList").innerHTML=db.signatures.length?db.signatures.slice().reverse().map(s=>`<div class="filecard"><span>✍️ <b>${esc(s.role||"Chef / Receiver")}</b> • ${s.date}</span><span><img src="${s.data}" style="width:120px;max-height:45px;object-fit:contain"> <button class="btn red" onclick="deleteSig(${s.id})">Delete</button></span></div>`).join(""):"";}
 function deleteSig(id){db.signatures=db.signatures.filter(s=>s.id!==id);save();renderSignatures();}
 function saveFeedback(){let f={id:Date.now(),date:$("fbDate").value||TODAY,person:$("fbPerson").value,type:$("fbType").value,priority:$("fbPriority").value,text:$("fbText").value};if(!f.text.trim())return alert("Enter feedback.");db.feedback.push(f);save();$("fbText").value="";$("fbPerson").value="";renderFeedback();}
 function renderFeedback(){$("feedbackList").innerHTML=db.feedback.length?db.feedback.slice().reverse().map(f=>`<div class="filecard"><div><span class="pill ${f.priority==="Urgent"?"yellow":""}">${esc(f.priority)}</span> <b>${esc(f.type)}</b><br><small>${esc(f.date)} • ${esc(f.person||"Staff")}</small><p>${esc(f.text)}</p></div><button class="btn red" onclick="deleteFeedback(${f.id})">Delete</button></div>`).join(""):'<div class="empty">No feedback recorded.</div>';}

@@ -154,6 +154,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
   <button onclick="page('reports',this)">📊 Statistics</button>
   <button onclick="page('documents',this)">📎 Bills & Files</button>
   <button onclick="page('feedback',this)">💬 Feedback</button>
+  <button onclick="page('catering',this)">🍽️ Catering</button>
   <button onclick="page('settings',this)">⚙️ Settings</button>
  </nav>
 </header>
@@ -270,6 +271,36 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
   
  </div>
 </section>
+
+<section id="catering" class="page">
+ <div class="titlebar"><div><h2>Catering Management</h2><p class="subtitle">Create customer orders, calculate food quantities and prices automatically, and search previous orders by date.</p></div>
+  <div class="toolbar no-print"><button class="btn green" onclick="newCateringOrder()">➕ Add New Order</button><button class="btn blue" onclick="window.print()">🖨️ Print</button></div>
+ </div>
+ <div class="card">
+  <h3>Order Details</h3>
+  <div class="formgrid">
+   <div class="field"><label>Order / Event Date *</label><input type="date" id="catDate"></div>
+   <div class="field"><label>Customer Name *</label><input id="catCustomer" placeholder="Customer name"></div>
+   <div class="field"><label>Phone</label><input id="catPhone" placeholder="Phone number"></div>
+   <div class="field"><label>Event / Function</label><input id="catEvent" placeholder="Wedding, Birthday, Party..."></div>
+   <div class="field"><label>Venue / Address</label><input id="catVenue" placeholder="Venue / delivery address"></div>
+   <div class="field"><label>Guests</label><input id="catGuests" type="number" min="0" step="1" placeholder="0"></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="titlebar"><div><h3>Food Items & Price</h3><p class="subtitle">Unit Price × Quantity Required = Line Total</p></div><button class="btn green no-print" onclick="addCateringRow()">+ Add Item</button></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>S.No</th><th>Food Item</th><th>Unit Type</th><th>Price £ / Unit</th><th>Quantity Required</th><th>Total £</th><th class="no-print">Action</th></tr></thead><tbody id="catRows"></tbody></table></div>
+  <div class="toolbar" style="justify-content:flex-end;margin-top:12px"><strong style="font-size:1.35rem">Grand Total: <span id="catGrand">£0.00</span></strong></div>
+  <div class="field"><label>Notes / Customer Information</label><textarea id="catNotes" rows="3" placeholder="Menu notes, delivery time, special instructions..."></textarea></div>
+  <div class="toolbar no-print"><button class="btn green" onclick="saveCateringOrder()">💾 Save Order</button><button class="btn soft" onclick="newCateringOrder()">Clear / New</button></div>
+ </div>
+ <div class="card">
+  <h3>Search Catering Orders</h3>
+  <div class="toolbar no-print"><div class="field"><label>From</label><input type="date" id="catFrom"></div><div class="field"><label>To</label><input type="date" id="catTo"></div><div class="field"><label>Customer / Event</label><input id="catSearch" placeholder="Search"></div><button class="btn green" onclick="renderCateringOrders()">Search</button><button class="btn soft" onclick="clearCateringSearch()">Clear</button></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Customer</th><th>Event</th><th>Guests</th><th>Total</th><th class="no-print">Action</th></tr></thead><tbody id="catOrderList"></tbody></table></div>
+ </div>
+</section>
+
 </main>
 <footer>ANANDHA BHAVAN • PURE VEG SOUTH INDIAN RESTAURANT - WEMBLEY • Master Inventory & Food Cost Control</footer>
 
@@ -392,7 +423,7 @@ function b64ToBytes(str){let bin=atob(str);let out=new Uint8Array(bin.length);fo
 async function deriveKey(password,salt){const material=await crypto.subtle.importKey('raw',HAB_TEXT_ENCODER.encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:HAB_ITERATIONS,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
 async function encryptObject(obj,password){const salt=crypto.getRandomValues(new Uint8Array(16));const iv=crypto.getRandomValues(new Uint8Array(12));const key=await deriveKey(password,salt);const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,HAB_TEXT_ENCODER.encode(JSON.stringify(obj)));return {v:1,alg:'AES-256-GCM',iter:HAB_ITERATIONS,salt:bytesToB64(salt),iv:bytesToB64(iv),data:bytesToB64(new Uint8Array(cipher))};}
 async function decryptObject(payload,password){const salt=b64ToBytes(payload.salt),iv=b64ToBytes(payload.iv),key=await deriveKey(password,salt);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,b64ToBytes(payload.data));return JSON.parse(HAB_TEXT_DECODER.decode(plain));}
-function makeDefaultDb(){return {items:SOURCE_ITEMS.map(x=>({...x})),entries:[],movements:[],sales:[],docs:[],signatures:[],feedback:[],suppliers:[],settings:{name:'ANANDHA BHAVAN RESTAURANT',address:'545 High Road, Wembley, London HA0 2DJ',frequency:'Daily'}};}
+function makeDefaultDb(){return {items:SOURCE_ITEMS.map(x=>({...x})),entries:[],movements:[],sales:[],docs:[],signatures:[],feedback:[],cateringOrders:[],suppliers:[],settings:{name:'ANANDHA BHAVAN RESTAURANT',address:'545 High Road, Wembley, London HA0 2DJ',frequency:'Daily'}};}
 const HAB_DB_NAME='HAB_INVENTORY_SECURE_DB';
 const HAB_DB_STORE='vault';
 function idbOpen(){return new Promise((resolve,reject)=>{if(!window.indexedDB)return reject(new Error('IndexedDB unavailable'));const r=indexedDB.open(HAB_DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(HAB_DB_STORE))r.result.createObjectStore(HAB_DB_STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('IndexedDB error'));});}
@@ -423,6 +454,7 @@ function ensureMasterData(){
  db.entries=Array.isArray(db.entries)?db.entries:[];
  db.movements=Array.isArray(db.movements)?db.movements:[];
  db.sales=Array.isArray(db.sales)?db.sales:[];
+ db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];
  const existingRows=new Set(db.entries.map(e=>String(e.item||'').trim().toLowerCase()+'||'+String(e.supplier||'').trim().toLowerCase()+'||'+e.date+'||'+e.time));
  let added=0;
  sortedItems().forEach(i=>{const key=String(i.name||'').trim().toLowerCase()+'||'+String(i.supplier||'').trim().toLowerCase()+'||'+INITIAL_STOCK_DATE+'||'+INITIAL_STOCK_TIME;if(!existingRows.has(key)){db.entries.push({id:'STK-'+Date.now()+'-'+String(added).padStart(3,'0'),date:INITIAL_STOCK_DATE,time:INITIAL_STOCK_TIME,frequency:db.settings?.frequency||'Daily',supplier:i.supplier,item:i.name,category:i.category,unit:i.unit||'unit',open:0,received:0,close:0,price:+i.price||0,reorder:+i.reorder||0,remark:'Initial stock entry'});existingRows.add(key);added++;}});
@@ -466,9 +498,29 @@ function sortedStockEntries(){
 }
 function itemById(id){return db.items.find(i=>i.id===id)||null;}
 function itemByName(n,supplier){return db.items.find(i=>i.name===n&&(!supplier||i.supplier===supplier))||null;}
-function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);window.scrollTo({top:0,behavior:"smooth"});}
+
+let editCateringId=null;
+const CAT_UNITS=['Piece','Portion','Tray','Container','Kg','Gram','Litre','ml','Plate','Box','Pack','Dozen','Set','Person','Bowl','Bucket','Pan','Each'];
+function cateringRows(){return document.querySelectorAll('#catRows tr');}
+function addCateringRow(data={}){
+ const body=$('catRows'); if(!body)return;
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td class="catNo"></td><td><input class="catItem" value="${esc(data.item||'')}" placeholder="Food item"></td><td><select class="catUnit">${CAT_UNITS.map(u=>`<option ${u===(data.unit||'Portion')?'selected':''}>${u}</option>`).join('')}</select></td><td><input class="catPrice" type="number" min="0" step="0.01" value="${Number(data.price||0)}"></td><td><input class="catQty" type="number" min="0" step="0.001" value="${Number(data.qty||1)}"></td><td class="catTotal">£0.00</td><td class="no-print"><button class="btn red" type="button" onclick="this.closest('tr').remove();recalcCatering()">Delete</button></td>`;
+ body.appendChild(tr); tr.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',recalcCatering)); recalcCatering();
+}
+function recalcCatering(){let grand=0;cateringRows().forEach((tr,i)=>{tr.querySelector('.catNo').textContent=i+1;let p=+tr.querySelector('.catPrice').value||0,q=+tr.querySelector('.catQty').value||0,t=p*q;grand+=t;tr.querySelector('.catTotal').textContent=money(t);});if($('catGrand'))$('catGrand').textContent=money(grand);}
+function newCateringOrder(){editCateringId=null;if(!$('catRows'))return;$('catDate').value=new Date().toISOString().slice(0,10);['catCustomer','catPhone','catEvent','catVenue','catNotes'].forEach(id=>$(id).value='');$('catGuests').value='';$('catRows').innerHTML='';addCateringRow();recalcCatering();}
+function collectCateringItems(){return [...cateringRows()].map(tr=>({item:tr.querySelector('.catItem').value.trim(),unit:tr.querySelector('.catUnit').value,price:+tr.querySelector('.catPrice').value||0,qty:+tr.querySelector('.catQty').value||0})).filter(x=>x.item);}
+function saveCateringOrder(){let date=$('catDate').value,customer=$('catCustomer').value.trim(),items=collectCateringItems();if(!date||!customer)return alert('Please enter Order Date and Customer Name.');if(!items.length)return alert('Please add at least one food item.');let total=items.reduce((a,x)=>a+x.price*x.qty,0);let o={id:editCateringId||('CAT-'+Date.now()),date,customer,phone:$('catPhone').value.trim(),event:$('catEvent').value.trim(),venue:$('catVenue').value.trim(),guests:+$('catGuests').value||0,notes:$('catNotes').value.trim(),items,total,updatedAt:new Date().toISOString()};db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];if(editCateringId)db.cateringOrders=db.cateringOrders.map(x=>x.id===editCateringId?o:x);else db.cateringOrders.push(o);save();renderCateringOrders();alert('Catering order saved.');newCateringOrder();}
+function renderCateringOrders(){if(!$('catOrderList'))return;db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];let f=$('catFrom').value,t=$('catTo').value,q=$('catSearch').value.trim().toLowerCase();let rows=db.cateringOrders.filter(o=>(!f||o.date>=f)&&(!t||o.date<=t)&&(!q||`${o.customer} ${o.event} ${o.phone}`.toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('catOrderList').innerHTML=rows.length?rows.map(o=>`<tr><td>${esc(o.date)}</td><td>${esc(o.customer)}</td><td>${esc(o.event||'')}</td><td>${o.guests||''}</td><td>${money(o.total||0)}</td><td class="no-print"><button class="btn soft" onclick="editCateringOrder('${esc(o.id)}')">Edit</button> <button class="btn red" onclick="deleteCateringOrder('${esc(o.id)}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="6">No catering orders found.</td></tr>';}
+function editCateringOrder(id){let o=(db.cateringOrders||[]).find(x=>x.id===id);if(!o)return;editCateringId=id;$('catDate').value=o.date;$('catCustomer').value=o.customer||'';$('catPhone').value=o.phone||'';$('catEvent').value=o.event||'';$('catVenue').value=o.venue||'';$('catGuests').value=o.guests||'';$('catNotes').value=o.notes||'';$('catRows').innerHTML='';(o.items||[]).forEach(addCateringRow);if(!(o.items||[]).length)addCateringRow();recalcCatering();window.scrollTo({top:0,behavior:'smooth'});}
+function deleteCateringOrder(id){if(!confirm('Delete this catering order?'))return;db.cateringOrders=(db.cateringOrders||[]).filter(x=>x.id!==id);save();renderCateringOrders();}
+function clearCateringSearch(){$('catFrom').value='';$('catTo').value='';$('catSearch').value='';renderCateringOrders();}
+function initCatering(){if(!$('catRows'))return;if(!$('catRows').children.length)newCateringOrder();renderCateringOrders();}
+
+function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="catering")setTimeout(initCatering,40);window.scrollTo({top:0,behavior:"smooth"});}
 function scrollTable(id,n){$(id).scrollBy({left:n,behavior:"smooth"});}
-function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();}
+function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();if($("catOrderList"))renderCateringOrders();}
 function populateSelects(){
  ensureMasterData();
  let suppliers=db.suppliers.slice().sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:"base",numeric:true}));

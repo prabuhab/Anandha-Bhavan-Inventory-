@@ -274,12 +274,13 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 
 <section id="catering" class="page">
  <div class="titlebar"><div><h2>Catering Management</h2><p class="subtitle">Create customer orders, calculate food quantities and prices automatically, and search previous orders by date.</p></div>
-  <div class="toolbar no-print"><button class="btn green" onclick="newCateringOrder()">➕ Add New Order</button><button class="btn blue" onclick="window.print()">🖨️ Print</button></div>
+  <div class="toolbar no-print"><button class="btn green" onclick="newCateringOrder()">➕ Add New Order</button><button class="btn blue" onclick="window.print()">🖨️ Print</button><button class="btn soft" onclick="importPreviousCateringOrders()">☁️ Import Previous Catering Orders</button></div>
  </div>
  <div class="card">
   <h3>Order Details</h3>
   <div class="formgrid">
-   <div class="field"><label>Order / Event Date *</label><input type="date" id="catDate"></div>
+   <div class="field"><label>Order Date *</label><input type="date" id="catOrderDate"></div>
+   <div class="field"><label>Event Date *</label><input type="date" id="catEventDate"></div>
    <div class="field"><label>Customer Name *</label><input id="catCustomer" placeholder="Customer name"></div>
    <div class="field"><label>Phone</label><input id="catPhone" placeholder="Phone number"></div>
    <div class="field"><label>Event / Function</label><input id="catEvent" placeholder="Wedding, Birthday, Party..."></div>
@@ -297,7 +298,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
  <div class="card">
   <h3>Search Catering Orders</h3>
   <div class="toolbar no-print"><div class="field"><label>From</label><input type="date" id="catFrom"></div><div class="field"><label>To</label><input type="date" id="catTo"></div><div class="field"><label>Customer / Event</label><input id="catSearch" placeholder="Search"></div><button class="btn green" onclick="renderCateringOrders()">Search</button><button class="btn soft" onclick="clearCateringSearch()">Clear</button></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Customer</th><th>Event</th><th>Guests</th><th>Total</th><th class="no-print">Action</th></tr></thead><tbody id="catOrderList"></tbody></table></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>Order Date</th><th>Event Date</th><th>Customer</th><th>Event</th><th>Guests</th><th>Total</th><th class="no-print">Action</th></tr></thead><tbody id="catOrderList"></tbody></table></div>
  </div>
 </section>
 
@@ -509,13 +510,32 @@ function addCateringRow(data={}){
  body.appendChild(tr); tr.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',recalcCatering)); recalcCatering();
 }
 function recalcCatering(){let grand=0;cateringRows().forEach((tr,i)=>{tr.querySelector('.catNo').textContent=i+1;let p=+tr.querySelector('.catPrice').value||0,q=+tr.querySelector('.catQty').value||0,t=p*q;grand+=t;tr.querySelector('.catTotal').textContent=money(t);});if($('catGrand'))$('catGrand').textContent=money(grand);}
-function newCateringOrder(){editCateringId=null;if(!$('catRows'))return;$('catDate').value=new Date().toISOString().slice(0,10);['catCustomer','catPhone','catEvent','catVenue','catNotes'].forEach(id=>$(id).value='');$('catGuests').value='';$('catRows').innerHTML='';addCateringRow();recalcCatering();}
+function newCateringOrder(){editCateringId=null;if(!$('catRows'))return;let d=new Date().toISOString().slice(0,10);$('catOrderDate').value=d;$('catEventDate').value='';['catCustomer','catPhone','catEvent','catVenue','catNotes'].forEach(id=>$(id).value='');$('catGuests').value='';$('catRows').innerHTML='';addCateringRow();recalcCatering();}
 function collectCateringItems(){return [...cateringRows()].map(tr=>({item:tr.querySelector('.catItem').value.trim(),unit:tr.querySelector('.catUnit').value,price:+tr.querySelector('.catPrice').value||0,qty:+tr.querySelector('.catQty').value||0})).filter(x=>x.item);}
-function saveCateringOrder(){let date=$('catDate').value,customer=$('catCustomer').value.trim(),items=collectCateringItems();if(!date||!customer)return alert('Please enter Order Date and Customer Name.');if(!items.length)return alert('Please add at least one food item.');let total=items.reduce((a,x)=>a+x.price*x.qty,0);let o={id:editCateringId||('CAT-'+Date.now()),date,customer,phone:$('catPhone').value.trim(),event:$('catEvent').value.trim(),venue:$('catVenue').value.trim(),guests:+$('catGuests').value||0,notes:$('catNotes').value.trim(),items,total,updatedAt:new Date().toISOString()};db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];if(editCateringId)db.cateringOrders=db.cateringOrders.map(x=>x.id===editCateringId?o:x);else db.cateringOrders.push(o);save();renderCateringOrders();alert('Catering order saved.');newCateringOrder();}
-function renderCateringOrders(){if(!$('catOrderList'))return;db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];let f=$('catFrom').value,t=$('catTo').value,q=$('catSearch').value.trim().toLowerCase();let rows=db.cateringOrders.filter(o=>(!f||o.date>=f)&&(!t||o.date<=t)&&(!q||`${o.customer} ${o.event} ${o.phone}`.toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('catOrderList').innerHTML=rows.length?rows.map(o=>`<tr><td>${esc(o.date)}</td><td>${esc(o.customer)}</td><td>${esc(o.event||'')}</td><td>${o.guests||''}</td><td>${money(o.total||0)}</td><td class="no-print"><button class="btn soft" onclick="editCateringOrder('${esc(o.id)}')">Edit</button> <button class="btn red" onclick="deleteCateringOrder('${esc(o.id)}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="6">No catering orders found.</td></tr>';}
-function editCateringOrder(id){let o=(db.cateringOrders||[]).find(x=>x.id===id);if(!o)return;editCateringId=id;$('catDate').value=o.date;$('catCustomer').value=o.customer||'';$('catPhone').value=o.phone||'';$('catEvent').value=o.event||'';$('catVenue').value=o.venue||'';$('catGuests').value=o.guests||'';$('catNotes').value=o.notes||'';$('catRows').innerHTML='';(o.items||[]).forEach(addCateringRow);if(!(o.items||[]).length)addCateringRow();recalcCatering();window.scrollTo({top:0,behavior:'smooth'});}
+function saveCateringOrder(){let orderDate=$('catOrderDate').value,eventDate=$('catEventDate').value,customer=$('catCustomer').value.trim(),items=collectCateringItems();if(!orderDate||!eventDate||!customer)return alert('Please enter Order Date, Event Date and Customer Name.');if(!items.length)return alert('Please add at least one food item.');let total=items.reduce((a,x)=>a+x.price*x.qty,0);let o={id:editCateringId||('CAT-'+Date.now()),orderDate,eventDate,date:eventDate,customer,phone:$('catPhone').value.trim(),event:$('catEvent').value.trim(),venue:$('catVenue').value.trim(),guests:+$('catGuests').value||0,notes:$('catNotes').value.trim(),items,total,updatedAt:new Date().toISOString()};db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];if(editCateringId)db.cateringOrders=db.cateringOrders.map(x=>x.id===editCateringId?o:x);else db.cateringOrders.push(o);save();renderCateringOrders();alert('Catering order saved.');newCateringOrder();}
+function renderCateringOrders(){if(!$('catOrderList'))return;db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];let f=$('catFrom').value,t=$('catTo').value,q=$('catSearch').value.trim().toLowerCase();let rows=db.cateringOrders.filter(o=>{let d=o.eventDate||o.date||o.orderDate||'';return(!f||d>=f)&&(!t||d<=t)&&(!q||`${o.customer} ${o.event} ${o.phone}`.toLowerCase().includes(q))}).sort((a,b)=>String(b.eventDate||b.date||'').localeCompare(String(a.eventDate||a.date||'')));$('catOrderList').innerHTML=rows.length?rows.map(o=>`<tr><td>${esc(o.orderDate||o.date||'')}</td><td>${esc(o.eventDate||o.date||'')}</td><td>${esc(o.customer)}</td><td>${esc(o.event||'')}</td><td>${o.guests||''}</td><td>${money(o.total||0)}</td><td class="no-print"><button class="btn soft" onclick="editCateringOrder('${esc(o.id)}')">Edit</button> <button class="btn red" onclick="deleteCateringOrder('${esc(o.id)}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="7">No catering orders found.</td></tr>';}
+function editCateringOrder(id){let o=(db.cateringOrders||[]).find(x=>x.id===id);if(!o)return;editCateringId=id;$('catOrderDate').value=o.orderDate||o.date||'';$('catEventDate').value=o.eventDate||o.date||'';$('catCustomer').value=o.customer||'';$('catPhone').value=o.phone||'';$('catEvent').value=o.event||'';$('catVenue').value=o.venue||'';$('catGuests').value=o.guests||'';$('catNotes').value=o.notes||'';$('catRows').innerHTML='';(o.items||[]).forEach(addCateringRow);if(!(o.items||[]).length)addCateringRow();recalcCatering();window.scrollTo({top:0,behavior:'smooth'});}
 function deleteCateringOrder(id){if(!confirm('Delete this catering order?'))return;db.cateringOrders=(db.cateringOrders||[]).filter(x=>x.id!==id);save();renderCateringOrders();}
 function clearCateringSearch(){$('catFrom').value='';$('catTo').value='';$('catSearch').value='';renderCateringOrders();}
+
+async function importPreviousCateringOrders(){
+ if(!window.supabase)return alert('Cloud library is not available.');
+ try{
+  const c=cloudCfg(), client=window.supabase.createClient(c.url,c.key);
+  const {data,error}=await client.from('catering_orders').select('*').order('event_date',{ascending:false});
+  if(error)throw error;
+  db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];
+  let added=0;
+  for(const r of (data||[])){
+   const legacyId='OLD-'+String(r.id);
+   if(db.cateringOrders.some(x=>x.id===legacyId||String(x.legacyId||'')===String(r.id)))continue;
+   const items=(Array.isArray(r.menu_items)?r.menu_items:[]).map(i=>({item:i.name||i.item||'',unit:i.unit||'Portion',price:Number(i.price||0),qty:Number(i.qty||i.quantity||0)}));
+   db.cateringOrders.push({id:legacyId,legacyId:r.id,orderDate:r.order_date||'',eventDate:r.event_date||'',date:r.event_date||r.order_date||'',customer:r.customer_name||'',phone:r.contact_no||'',event:r.event_type||'',venue:r.venue_remarks||'',guests:Number(r.pax)||0,notes:['Pickup Time: '+(r.pickup_time||''),'Payment: '+(r.payment_mode||''),'Advance: £'+(r.advance_paid||0),'Balance: £'+(r.balance_amount||0)].join(' • '),items,total:Number(r.total_amount)||0,updatedAt:r.created_at||new Date().toISOString()});added++;
+  }
+  save();renderCateringOrders();alert(added+' previous catering order(s) imported. Existing duplicates were skipped.');
+ }catch(e){alert('Previous catering import could not complete: '+(e.message||e));}
+}
+
 function initCatering(){if(!$('catRows'))return;if(!$('catRows').children.length)newCateringOrder();renderCateringOrders();}
 
 function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="catering")setTimeout(initCatering,40);window.scrollTo({top:0,behavior:"smooth"});}

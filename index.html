@@ -575,7 +575,7 @@ table tbody tr:hover{
 </section>
 
 <section id="movement" class="page">
- <div class="titlebar"><div><h2>Kitchen / Outside / Waste Movement</h2><p class="subtitle">Record exactly when stock left the store and where it went.</p></div><div class="toolbar no-print"><button class="btn green" onclick="openMovement()">+ Add Movement</button></div></div>
+ <div class="titlebar"><div><h2>Kitchen / Outside / Waste Movement</h2><p class="subtitle">Kitchen quantity entered in Stock Entry is added here automatically. Use + Add Movement mainly for Outside / Transfer, Waste or Other movements.</p></div><div class="toolbar no-print"><button class="btn green" onclick="openMovement()">+ Add Movement</button><button class="btn soft" onclick="syncExistingKitchenMovements(true)">↻ Sync Existing Stock Kitchen Qty</button><button class="btn orange" onclick="exportMovementCSV()">Export Movements</button></div></div>
  <div class="grid4">
   <div class="card kpi"><small>Kitchen Issues</small><strong id="mKitchen">£0.00</strong></div><div class="card kpi"><small>Outside / Transfer</small><strong id="mOutside">£0.00</strong></div>
   <div class="card kpi"><small>Waste</small><strong id="mWaste">£0.00</strong></div><div class="card kpi"><small>Other</small><strong id="mOther">£0.00</strong></div>
@@ -887,7 +887,16 @@ function cloudCfg(){return {url:(localStorage.getItem('HAB_SUPABASE_URL')||'http
 function setCloudStatus(msg){const el=$("cloudStatus");if(el)el.innerText=msg;}
 function initCloudClient(){const c=cloudCfg(); if(!c.url||!c.key||!window.supabase){cloudClient=null;return false;} try{cloudClient=window.supabase.createClient(c.url,c.key); return true;}catch(e){cloudClient=null;return false;}}
 async function cloudSave(){if(!cloudClient||!cloudSession||cloudSyncing||PORTABLE_MODE)return;cloudSyncing=true;try{const uid=cloudSession.user.id;const {data:row,error:getErr}=await cloudClient.from('app_state').select('revision,updated_at').eq('user_id',uid).maybeSingle();if(getErr)throw getErr;const serverRev=Number(row?.revision||0);if(row && serverRev!==Number(cloudRevision)){setCloudStatus('⚠️ Cloud changed on another device. Local data was NOT overwritten. Please reload/sync before making more edits.');cloudSyncing=false;return;}const nextRev=serverRev+1;const payload={user_id:uid,revision:nextRev,data:db,updated_at:new Date().toISOString()};const {error}=await cloudClient.from('app_state').upsert(payload,{onConflict:'user_id'});if(error)throw error;cloudRevision=nextRev;cloudLastUpdated=payload.updated_at;setCloudStatus('☁️ Synced securely • '+new Date().toLocaleString('en-GB'));}catch(e){setCloudStatus('⚠️ Cloud sync error: '+e.message);}finally{cloudSyncing=false;}}
-async function cloudLoad(){if(!cloudClient||!cloudSession)return;try{const uid=cloudSession.user.id;const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();if(error)throw error;if(row?.data){db=row.data;cloudRevision=Number(row.revision||0);cloudLastUpdated=row.updated_at;ensureMasterData();localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));refreshAll();setCloudStatus('☁️ Master data loaded • '+new Date(row.updated_at).toLocaleString('en-GB'));}else{cloudRevision=0;await cloudSave();setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}}catch(e){setCloudStatus('⚠️ Could not load cloud data: '+e.message);}}
+async function cloudLoad(){if(!cloudClient||!cloudSession)return;try{const uid=cloudSession.user.id;const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();if(error)throw error;if(row?.data){db=row.data;cloudRevision=Number(row.revision||0);cloudLastUpdated=row.updated_at;ensureMasterData();
+ if(localStorage.getItem("HAB_KITCHEN_SYNC_V1")!=="done"){
+   setTimeout(()=>{
+     try{
+       syncExistingKitchenMovements(false);
+       localStorage.setItem("HAB_KITCHEN_SYNC_V1","done");
+     }catch(e){console.warn("Kitchen auto-sync migration:",e);}
+   },250);
+ }
+localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));refreshAll();setCloudStatus('☁️ Master data loaded • '+new Date(row.updated_at).toLocaleString('en-GB'));}else{cloudRevision=0;await cloudSave();setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}}catch(e){setCloudStatus('⚠️ Could not load cloud data: '+e.message);}}
 async function cloudSignIn(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value; if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error)return alert(error.message);cloudSession=data.session;await cloudLoad();}
 async function cloudSignUp(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');if(password.length<8)return alert('Use a password of at least 8 characters.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signUp({email,password});if(error)return alert(error.message);if(data.session){cloudSession=data.session;await cloudLoad();}else setCloudStatus('Account created. Check your email to confirm the account, then Sign In.');}
 async function cloudSignOut(){if(cloudClient)await cloudClient.auth.signOut();cloudSession=null;cloudReady=false;setCloudStatus('Signed out. This device will keep its local backup.');}
@@ -1301,21 +1310,145 @@ function updateStockAutoFields(){
  let kitchen=+$("eKitchen").value||0;
  $("eClose").value=(open+received-kitchen).toFixed(3);
 }
+function syncKitchenMovementFromStockEntry(e){
+ if(!e||!e.id)return;
+ db.movements=Array.isArray(db.movements)?db.movements:[];
+ const autoId="AUTO-KITCHEN-"+e.id;
+ let idx=db.movements.findIndex(m=>m.id===autoId||m.sourceStockId===e.id);
+ const qty=+e.kitchen||0;
+
+ if(qty<=0){
+   if(idx>=0)db.movements.splice(idx,1);
+   return;
+ }
+
+ const m={
+   id:autoId,
+   sourceStockId:e.id,
+   autoFromStock:true,
+   date:e.date,
+   time:e.time||"00:00",
+   item:e.item,
+   category:e.category,
+   supplier:e.supplier,
+   type:"Kitchen Issue",
+   qty,
+   unit:e.unit||"unit",
+   price:+e.price||0,
+   reason:"Auto from Stock Entry"
+ };
+ if(idx>=0)db.movements[idx]={...db.movements[idx],...m};
+ else db.movements.push(m);
+}
 function saveStock(){
  let id=$("eItem").value,i=itemById(id);if(!i)return alert("Please select a valid Item.");
  let open=+$("eOpen").value||0,received=+$("eRecv").value||0,kitchen=+$("eKitchen").value||0;
  let e={id:editEntryId||Date.now().toString(),date:$("eDate").value,time:$("eTime").value,frequency:$("eFreq").value,supplier:i.supplier,item:i.name,category:i.category,unit:$("eUnit").value||i.unit,open,received,kitchen,close:open+received-kitchen,price:+$("ePrice").value||0,reorder:+$("eReorder").value||0,remark:$("eRemark").value};
- if(!e.date||!e.item)return alert("Please enter Date and Item.");if(editEntryId)db.entries=db.entries.map(x=>x.id===editEntryId?e:x);else db.entries.push(e);save();closeModals();refreshAll();
+ if(!e.date||!e.item)return alert("Please enter Date and Item.");
+ if(editEntryId)db.entries=db.entries.map(x=>x.id===editEntryId?e:x);else db.entries.push(e);
+ syncKitchenMovementFromStockEntry(e);
+ save();closeModals();refreshAll();
 }
 function editStock(id){let e=db.entries.find(x=>x.id===id);if(!e)return;editEntryId=id;$("stockModal").classList.add("show");populateSelects();let i=itemByName(e.item,e.supplier);$("eDate").value=e.date;$("eTime").value=e.time;$("eFreq").value=e.frequency;$("eSupplier").value=e.supplier||"";filterStockItemsBySupplier(i?.id||"");$("eUnit").value=e.unit;$("ePrice").value=e.price;$("eOpen").value=e.open;$("eRecv").value=e.received;$("eKitchen").value=(e.kitchen!==undefined?(+e.kitchen||0):kitchenMovementFor(e));$("eReorder").value=e.reorder||0;$("eRemark").value=e.remark||"";updateStockAutoFields();}
-function deleteStock(id){if(confirm("Delete this stock entry?")){db.entries=db.entries.filter(e=>e.id!==id);save();refreshAll();}}
+function deleteStock(id){if(confirm("Delete this stock entry?")){db.entries=db.entries.filter(e=>e.id!==id);db.movements=(db.movements||[]).filter(m=>m.sourceStockId!==id&&m.id!=="AUTO-KITCHEN-"+id);save();refreshAll();}}
+
+function syncExistingKitchenMovements(showMessage=false){
+ db.movements=Array.isArray(db.movements)?db.movements:[];
+ let created=0,linked=0,updated=0,removed=0;
+
+ for(const e of (db.entries||[])){
+   const qty=+e.kitchen||0;
+   const autoId="AUTO-KITCHEN-"+e.id;
+   let idx=db.movements.findIndex(m=>m.id===autoId||m.sourceStockId===e.id);
+
+   if(qty<=0){
+     if(idx>=0){
+       db.movements.splice(idx,1);
+       removed++;
+     }
+     continue;
+   }
+
+   if(idx<0){
+     // Reuse a likely old manual Kitchen Issue if the same entry was keyed twice before.
+     idx=db.movements.findIndex(m =>
+       !m.sourceStockId &&
+       m.type==="Kitchen Issue" &&
+       m.date===e.date &&
+       m.item===e.item &&
+       (!m.supplier||m.supplier===e.supplier) &&
+       Math.abs((+m.qty||0)-qty)<0.000001
+     );
+     if(idx>=0){
+       db.movements[idx]={
+         ...db.movements[idx],
+         id:autoId,
+         sourceStockId:e.id,
+         autoFromStock:true,
+         time:e.time||db.movements[idx].time||"00:00",
+         category:e.category,
+         supplier:e.supplier,
+         unit:e.unit||db.movements[idx].unit||"unit",
+         price:+e.price||0,
+         reason:"Auto from Stock Entry"
+       };
+       linked++;
+       continue;
+     }
+   }
+
+   const m={
+     id:autoId,
+     sourceStockId:e.id,
+     autoFromStock:true,
+     date:e.date,
+     time:e.time||"00:00",
+     item:e.item,
+     category:e.category,
+     supplier:e.supplier,
+     type:"Kitchen Issue",
+     qty,
+     unit:e.unit||"unit",
+     price:+e.price||0,
+     reason:"Auto from Stock Entry"
+   };
+   if(idx>=0){
+     db.movements[idx]={...db.movements[idx],...m};
+     updated++;
+   }else{
+     db.movements.push(m);
+     created++;
+   }
+ }
+ save();
+ renderMovement();
+ if(showMessage){
+   alert(
+    "Kitchen sync complete. "+
+    created+" created, "+
+    linked+" previous matching movement(s) linked, "+
+    updated+" updated, "+
+    removed+" zero-qty auto movement(s) removed."
+   );
+ }
+}
+function exportMovementCSV(){
+ let rows=[["Date","Time","Supplier","Item","Category","Type","Quantity","Unit","Price £","Value £","Reason","Source"],
+ ...(db.movements||[]).map(m=>[
+   m.date,m.time,m.supplier,m.item,m.category,m.type,m.qty,m.unit,m.price,
+   ((+m.qty||0)*(+m.price||0)).toFixed(2),m.reason||"",
+   m.autoFromStock?"Stock Entry (Auto)":"Movement Entry"
+ ])];
+ downloadCSV(rows,"HAB_Movements.csv");
+}
+
 function openMovement(id=null){
  editMovementId=id;
  $("moveModalTitle").innerText=id?"Edit Kitchen / Outside Movement":"Kitchen / Outside Movement";
  $("moveModal").classList.add("show");populateSelects();
  let m=id?db.movements.find(x=>x.id===id):null;
  $("mDate").value=m?.date||TODAY;$("mTime").value=m?.time||new Date().toTimeString().slice(0,5);
- $("mQty").value=m?.qty||0;$("mReason").value=m?.reason||"";$("mType").value=m?.type||"Kitchen Issue";
+ $("mQty").value=m?.qty||0;$("mReason").value=m?.reason||"";$("mType").value=m?.type||"Outside / Transfer";
  let item=m?itemByName(m.item,m.supplier):sortedItems()[0];setMovementItem(item?.id);
 }
 function setMovementItem(id){$("mItem").value=id||"";let i=itemById(id);$("mPrice").value=i?.price||0;}
@@ -1330,7 +1463,7 @@ function renderMovement(){
  let sums={"Kitchen Issue":0,"Outside / Transfer":0,Waste:0,Other:0};db.movements.forEach(m=>sums[m.type]=(sums[m.type]||0)+m.qty*m.price);
  $("mKitchen").innerText=money(sums["Kitchen Issue"]);$("mOutside").innerText=money(sums["Outside / Transfer"]);$("mWaste").innerText=money(sums.Waste);$("mOther").innerText=money(sums.Other);
  let rows=db.movements.slice().sort((a,b)=>{let s=String(a.supplier||"").localeCompare(String(b.supplier||""),undefined,{sensitivity:"base",numeric:true});if(s)return s;let n=String(a.item||"").localeCompare(String(b.item||""),undefined,{sensitivity:"base",numeric:true});if(n)return n;return String(b.date||"").localeCompare(String(a.date||""));});
- $("moveBody").innerHTML=rows.length?rows.map(m=>`<tr><td>${m.date}</td><td>${m.time}</td><td><b>${esc(m.item)}</b></td><td>${esc(m.category)}</td><td><span class="pill ${m.type==="Waste"?"yellow":""}">${esc(m.type)}</span></td><td>${m.qty}</td><td>${m.unit}</td><td class="money">${money(m.price)}</td><td class="money">${money(m.qty*m.price)}</td><td>${esc(m.reason||"")}</td><td class="no-print"><button class="btn soft" onclick="openMovement('${m.id}')">Edit</button> <button class="btn red" onclick="deleteMovement('${m.id}')">Remove</button></td></tr>`).join(""):`<tr><td colspan="11" class="empty">No movements recorded.</td></tr>`;
+ $("moveBody").innerHTML=rows.length?rows.map(m=>`<tr><td>${m.date}</td><td>${m.time}</td><td><b>${esc(m.item)}</b></td><td>${esc(m.category)}</td><td><span class="pill ${m.type==="Waste"?"yellow":""}">${esc(m.type)}</span>${m.autoFromStock?' <span class="pill">AUTO</span>':''}</td><td>${m.qty}</td><td>${m.unit}</td><td class="money">${money(m.price)}</td><td class="money">${money(m.qty*m.price)}</td><td>${esc(m.reason||"")}</td><td class="no-print">${m.autoFromStock?'<span class="pill">Edit in Stock Entry</span>':`<button class="btn soft" onclick="openMovement('${m.id}')">Edit</button> <button class="btn red" onclick="deleteMovement('${m.id}')">Remove</button>`}</td></tr>`).join(""):`<tr><td colspan="11" class="empty">No movements recorded.</td></tr>`;
 }
 function deleteMovement(id){if(confirm("Delete this movement?")){db.movements=db.movements.filter(m=>m.id!==id);save();refreshAll();}}
 function renderItems(){

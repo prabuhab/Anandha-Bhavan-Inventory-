@@ -95,6 +95,20 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 #habAuthMsg{margin-top:12px;font-size:13px;line-height:1.4;min-height:18px}
 #habLogoutBtn{position:fixed;right:12px;bottom:12px;z-index:5000;border:0;border-radius:999px;padding:10px 14px;background:#176b38;color:white;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,.18)}
 
+
+@media print{
+  body{background:#fff!important;}
+  header,.topnav,.no-print,#habLogoutBtn{display:none!important;}
+  main{padding:0!important;margin:0!important;max-width:none!important;}
+  .page{display:none!important;}
+  .page.active{display:block!important;}
+  .page.active .card{box-shadow:none!important;break-inside:avoid;}
+  .page.active .tablebox,.page.active .scroller{overflow:visible!important;max-height:none!important;}
+  .page.active table{font-size:10pt!important;width:100%!important;}
+  #catering .cat-search-card{display:none!important;}
+  #vendor .vendor-history-card{display:none!important;}
+  @page{size:auto;margin:10mm;}
+}
 </style>
 
 <!-- Anandha Bhavan App Icon -->
@@ -154,6 +168,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
   <button onclick="page('reports',this)">📊 Statistics</button>
   <button onclick="page('documents',this)">📎 Bills & Files</button>
   <button onclick="page('feedback',this)">💬 Feedback</button>
+  <button onclick="page('vendor',this)">🧾 Vendor Order</button>
   <button onclick="page('catering',this)">🍽️ Catering</button>
   <button onclick="page('settings',this)">⚙️ Settings</button>
  </nav>
@@ -196,7 +211,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 
 <section id="stock" class="page">
  <div class="titlebar"><div><h2>Master Stock Entry Register</h2><p class="subtitle">All items are sorted Supplier A–Z, then Item A–Z. Every new item automatically appears here as an Initial Stock Entry dated 15 Aug 2026 at 23:00.</p></div>
- <div class="toolbar no-print"><button class="btn green" onclick="openStock()">+ Add Stock Entry</button><button class="btn blue" onclick="exportCSV()">Export Excel / Sheets</button><button class="btn orange" onclick="window.print()">Print / PDF</button></div></div>
+ <div class="toolbar no-print"><button class="btn green" onclick="openStock()">+ Add Stock Entry</button><button class="btn blue" onclick="exportCSV()">Export Excel / Sheets</button><button class="btn orange" onclick="printActivePage()">Print / PDF</button></div></div>
  <div class="card no-print" style="margin-bottom:12px">
   <div class="toolbar"><div class="field"><label>Search</label><input id="stockSearch" placeholder="Item / category / supplier" oninput="renderStock()"></div><div class="field"><label>Frequency</label><select id="stockFreq" onchange="renderStock()"><option>All</option><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div></div>
  </div>
@@ -207,7 +222,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 
 <section id="sales" class="page">
  <div class="titlebar"><div><h2>Daily Sales</h2><p class="subtitle">Enter gross sales by date and time. VAT is automatically calculated at 20%, and Net Sales = Gross Sales − VAT.</p></div>
- <div class="toolbar no-print"><button class="btn green" onclick="openSale()">+ Add Daily Sale</button><button class="btn blue" onclick="exportSalesCSV()">Export Sales</button><button class="btn orange" onclick="window.print()">Print / PDF</button></div></div>
+ <div class="toolbar no-print"><button class="btn green" onclick="openSale()">+ Add Daily Sale</button><button class="btn blue" onclick="exportSalesCSV()">Export Sales</button><button class="btn orange" onclick="printActivePage()">Print / PDF</button></div></div>
  <div class="grid4">
   <div class="card kpi"><small>Gross Sales</small><strong id="sGrossSales">£0.00</strong></div>
   <div class="card kpi"><small>VAT Amount</small><strong id="sVatSales">£0.00</strong></div>
@@ -242,7 +257,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
 
 <section id="reports" class="page">
  <div class="titlebar"><div><h2>Statistics & 7-Year History</h2><p class="subtitle">Daily, weekly, monthly and yearly statistics. The report engine supports a rolling 7-year history (84 months).</p></div></div>
- <div class="card no-print"><div class="toolbar"><div class="field"><label>From</label><input type="date" id="repFrom"></div><div class="field"><label>To</label><input type="date" id="repTo"></div><div class="field"><label>View</label><select id="repView"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div><button class="btn green" onclick="renderReport()">Generate</button><button class="btn orange" onclick="window.print()">Print</button></div></div>
+ <div class="card no-print"><div class="toolbar"><div class="field"><label>From</label><input type="date" id="repFrom"></div><div class="field"><label>To</label><input type="date" id="repTo"></div><div class="field"><label>View</label><select id="repView"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div><button class="btn green" onclick="renderReport()">Generate</button><button class="btn orange" onclick="printActivePage()">Print</button></div></div>
  <div class="grid4"><div class="card kpi"><small>Opening £</small><strong id="rOpen">£0.00</strong></div><div class="card kpi"><small>Received £</small><strong id="rRecv">£0.00</strong></div><div class="card kpi"><small>Closing £</small><strong id="rClose">£0.00</strong></div><div class="card kpi"><small>Used £</small><strong id="rUsed">£0.00</strong></div></div>
  <div class="grid2" style="margin-top:12px"><div class="card"><h3>Trend</h3><div id="trend"></div></div><div class="card"><h3>Summary</h3><div id="reportSummary"></div></div></div>
  <div class="card" style="margin-top:12px"><h3>Monthly / Yearly Breakdown</h3><div class="tablebox"><div class="scroller" id="reportScroller"><table><thead><tr><th>Period</th><th>Opening £</th><th>Received £</th><th>Used £</th><th>Closing £</th><th>Usage %</th><th>Records</th></tr></thead><tbody id="reportBody"></tbody></table></div></div></div>
@@ -272,9 +287,31 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
  </div>
 </section>
 
+
+<section id="vendor" class="page">
+ <div class="titlebar"><div><h2>Supplier / Vendor Purchase Order</h2><p class="subtitle">Choose a supplier to show only that supplier’s items. Enter the required quantity, then print or save as PDF and share with the vendor.</p></div>
+  <div class="toolbar no-print"><button class="btn green" onclick="newVendorOrder()">+ New Vendor Order</button><button class="btn orange" onclick="printActivePage()">🖨️ Print / Save PDF</button></div>
+ </div>
+ <div class="card">
+  <div class="formgrid">
+   <div class="field"><label>Order Date</label><input type="date" id="vendorDate"></div>
+   <div class="field"><label>Supplier *</label><select id="vendorSupplier" onchange="renderVendorItems()"></select></div>
+   <div class="field"><label>Reference / PO No.</label><input id="vendorRef" placeholder="e.g. PO-001"></div>
+   <div class="field"><label>Delivery Date</label><input type="date" id="vendorDelivery"></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="titlebar"><div><h3 id="vendorHeading">Vendor Order Items</h3><p class="subtitle">Only items belonging to the selected supplier are shown.</p></div></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>S.No</th><th>Item</th><th>Category</th><th>Unit</th><th>Required Qty</th><th>Remarks</th></tr></thead><tbody id="vendorItemRows"></tbody></table></div>
+  <div class="field" style="margin-top:12px"><label>Order Notes</label><textarea id="vendorNotes" rows="3" placeholder="Delivery instructions / special notes"></textarea></div>
+  <div class="toolbar no-print"><button class="btn green" onclick="saveVendorOrder()">💾 Save Vendor Order</button><button class="btn orange" onclick="printActivePage()">🖨️ Print / Save PDF</button></div>
+ </div>
+ <div class="card vendor-history-card no-print"><h3>Saved Vendor Orders</h3><div id="vendorOrderList"></div></div>
+</section>
+
 <section id="catering" class="page">
  <div class="titlebar"><div><h2>Catering Management</h2><p class="subtitle">Create customer orders, calculate food quantities and prices automatically, and search previous orders by date.</p></div>
-  <div class="toolbar no-print"><button class="btn green" onclick="newCateringOrder()">➕ Add New Order</button><button class="btn blue" onclick="window.print()">🖨️ Print</button><button class="btn soft" onclick="importPreviousCateringOrders()">☁️ Import Previous Catering Orders</button></div>
+  <div class="toolbar no-print"><button class="btn green" onclick="newCateringOrder()">➕ Add New Order</button><button class="btn blue" onclick="printActivePage()">🖨️ Print</button><button class="btn soft" onclick="importPreviousCateringOrders()">☁️ Import Previous Catering Orders</button></div>
  </div>
  <div class="card">
   <h3>Order Details</h3>
@@ -295,7 +332,7 @@ footer{text-align:center;color:#7b877e;font-size:11px;padding:25px}
   <div class="field"><label>Notes / Customer Information</label><textarea id="catNotes" rows="3" placeholder="Menu notes, delivery time, special instructions..."></textarea></div>
   <div class="toolbar no-print"><button class="btn green" onclick="saveCateringOrder()">💾 Save Order</button><button class="btn soft" onclick="newCateringOrder()">Clear / New</button></div>
  </div>
- <div class="card">
+ <div class="card cat-search-card no-print">
   <h3>Search Catering Orders</h3>
   <div class="toolbar no-print"><div class="field"><label>From</label><input type="date" id="catFrom"></div><div class="field"><label>To</label><input type="date" id="catTo"></div><div class="field"><label>Customer / Event</label><input id="catSearch" placeholder="Search"></div><button class="btn green" onclick="renderCateringOrders()">Search</button><button class="btn soft" onclick="clearCateringSearch()">Clear</button></div>
   <div style="overflow-x:auto"><table><thead><tr><th>Order Date</th><th>Event Date</th><th>Customer</th><th>Event</th><th>Guests</th><th>Total</th><th class="no-print">Action</th></tr></thead><tbody id="catOrderList"></tbody></table></div>
@@ -424,7 +461,7 @@ function b64ToBytes(str){let bin=atob(str);let out=new Uint8Array(bin.length);fo
 async function deriveKey(password,salt){const material=await crypto.subtle.importKey('raw',HAB_TEXT_ENCODER.encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:HAB_ITERATIONS,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
 async function encryptObject(obj,password){const salt=crypto.getRandomValues(new Uint8Array(16));const iv=crypto.getRandomValues(new Uint8Array(12));const key=await deriveKey(password,salt);const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,HAB_TEXT_ENCODER.encode(JSON.stringify(obj)));return {v:1,alg:'AES-256-GCM',iter:HAB_ITERATIONS,salt:bytesToB64(salt),iv:bytesToB64(iv),data:bytesToB64(new Uint8Array(cipher))};}
 async function decryptObject(payload,password){const salt=b64ToBytes(payload.salt),iv=b64ToBytes(payload.iv),key=await deriveKey(password,salt);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,b64ToBytes(payload.data));return JSON.parse(HAB_TEXT_DECODER.decode(plain));}
-function makeDefaultDb(){return {items:SOURCE_ITEMS.map(x=>({...x})),entries:[],movements:[],sales:[],docs:[],signatures:[],feedback:[],cateringOrders:[],suppliers:[],settings:{name:'ANANDHA BHAVAN RESTAURANT',address:'545 High Road, Wembley, London HA0 2DJ',frequency:'Daily'}};}
+function makeDefaultDb(){return {items:SOURCE_ITEMS.map(x=>({...x})),entries:[],movements:[],sales:[],docs:[],signatures:[],feedback:[],cateringOrders:[],vendorOrders:[],suppliers:[],settings:{name:'ANANDHA BHAVAN RESTAURANT',address:'545 High Road, Wembley, London HA0 2DJ',frequency:'Daily'}};}
 const HAB_DB_NAME='HAB_INVENTORY_SECURE_DB';
 const HAB_DB_STORE='vault';
 function idbOpen(){return new Promise((resolve,reject)=>{if(!window.indexedDB)return reject(new Error('IndexedDB unavailable'));const r=indexedDB.open(HAB_DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(HAB_DB_STORE))r.result.createObjectStore(HAB_DB_STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('IndexedDB error'));});}
@@ -456,6 +493,7 @@ function ensureMasterData(){
  db.movements=Array.isArray(db.movements)?db.movements:[];
  db.sales=Array.isArray(db.sales)?db.sales:[];
  db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];
+ db.vendorOrders=Array.isArray(db.vendorOrders)?db.vendorOrders:[];
  const existingRows=new Set(db.entries.map(e=>String(e.item||'').trim().toLowerCase()+'||'+String(e.supplier||'').trim().toLowerCase()+'||'+e.date+'||'+e.time));
  let added=0;
  sortedItems().forEach(i=>{const key=String(i.name||'').trim().toLowerCase()+'||'+String(i.supplier||'').trim().toLowerCase()+'||'+INITIAL_STOCK_DATE+'||'+INITIAL_STOCK_TIME;if(!existingRows.has(key)){db.entries.push({id:'STK-'+Date.now()+'-'+String(added).padStart(3,'0'),date:INITIAL_STOCK_DATE,time:INITIAL_STOCK_TIME,frequency:db.settings?.frequency||'Daily',supplier:i.supplier,item:i.name,category:i.category,unit:i.unit||'unit',open:0,received:0,close:0,price:+i.price||0,reorder:+i.reorder||0,remark:'Initial stock entry'});existingRows.add(key);added++;}});
@@ -500,6 +538,35 @@ function sortedStockEntries(){
 function itemById(id){return db.items.find(i=>i.id===id)||null;}
 function itemByName(n,supplier){return db.items.find(i=>i.name===n&&(!supplier||i.supplier===supplier))||null;}
 
+
+function printActivePage(){
+ window.print();
+}
+let editVendorOrderId=null;
+function vendorSuppliers(){return (db.suppliers||[]).slice().sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));}
+function initVendor(){
+ if(!$('vendorSupplier'))return;
+ let current=$('vendorSupplier').value;
+ $('vendorSupplier').innerHTML=vendorSuppliers().map(x=>`<option>${esc(x)}</option>`).join('');
+ if(current&&vendorSuppliers().includes(current))$('vendorSupplier').value=current;
+ if(!$('vendorDate').value)$('vendorDate').value=new Date().toISOString().slice(0,10);
+ renderVendorItems();renderVendorOrders();
+}
+function newVendorOrder(){editVendorOrderId=null;$('vendorDate').value=new Date().toISOString().slice(0,10);$('vendorRef').value='';$('vendorDelivery').value='';$('vendorNotes').value='';initVendor();}
+function renderVendorItems(prefill=[]){
+ if(!$('vendorItemRows'))return;
+ let supplier=$('vendorSupplier').value||'';
+ let items=sortedItems().filter(i=>i.supplier===supplier);
+ let m=new Map((prefill||[]).map(x=>[String(x.item),x]));
+ $('vendorHeading').textContent=(supplier?supplier+' — ':'')+'Purchase Order Items';
+ $('vendorItemRows').innerHTML=items.length?items.map((i,n)=>{let x=m.get(i.name)||{};return `<tr data-item="${esc(i.name)}"><td>${n+1}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.category||'')}</td><td>${esc(i.unit||'')}</td><td><input class="vQty" type="number" min="0" step="0.001" value="${Number(x.qty||0)}" style="min-width:105px"></td><td><input class="vRemark" value="${esc(x.remark||'')}" placeholder="Optional" style="min-width:150px"></td></tr>`}).join(''):'<tr><td colspan="6">No items found for this supplier.</td></tr>';
+}
+function collectVendorItems(){return [...document.querySelectorAll('#vendorItemRows tr[data-item]')].map(tr=>({item:tr.dataset.item,qty:+tr.querySelector('.vQty').value||0,remark:tr.querySelector('.vRemark').value.trim()})).filter(x=>x.qty>0);}
+function saveVendorOrder(){let supplier=$('vendorSupplier').value,date=$('vendorDate').value,items=collectVendorItems();if(!supplier)return alert('Please select supplier.');if(!date)return alert('Please select order date.');if(!items.length)return alert('Please enter required quantity for at least one item.');let o={id:editVendorOrderId||('VPO-'+Date.now()),date,supplier,reference:$('vendorRef').value.trim(),deliveryDate:$('vendorDelivery').value,notes:$('vendorNotes').value.trim(),items,updatedAt:new Date().toISOString()};db.vendorOrders=Array.isArray(db.vendorOrders)?db.vendorOrders:[];if(editVendorOrderId)db.vendorOrders=db.vendorOrders.map(x=>x.id===editVendorOrderId?o:x);else db.vendorOrders.push(o);save();renderVendorOrders();alert('Vendor order saved. You can now Print / Save PDF and share it.');}
+function renderVendorOrders(){if(!$('vendorOrderList'))return;db.vendorOrders=Array.isArray(db.vendorOrders)?db.vendorOrders:[];$('vendorOrderList').innerHTML=db.vendorOrders.length?db.vendorOrders.slice().reverse().map(o=>`<div class="filecard"><span><b>${esc(o.supplier)}</b> • ${esc(o.date)} • ${esc(o.reference||o.id)} • ${o.items.length} item(s)</span><span><button class="btn soft" onclick="openVendorOrder('${esc(o.id)}')">Open</button> <button class="btn red" onclick="deleteVendorOrder('${esc(o.id)}')">Delete</button></span></div>`).join(''):'No saved vendor orders yet.';}
+function openVendorOrder(id){let o=(db.vendorOrders||[]).find(x=>x.id===id);if(!o)return;editVendorOrderId=id;initVendor();$('vendorSupplier').value=o.supplier;$('vendorDate').value=o.date||'';$('vendorRef').value=o.reference||'';$('vendorDelivery').value=o.deliveryDate||'';$('vendorNotes').value=o.notes||'';renderVendorItems(o.items||[]);window.scrollTo({top:0,behavior:'smooth'});}
+function deleteVendorOrder(id){if(!confirm('Delete this vendor order?'))return;db.vendorOrders=(db.vendorOrders||[]).filter(x=>x.id!==id);save();renderVendorOrders();}
+
 let editCateringId=null;
 const CAT_UNITS=['Piece','Portion','Tray','Container','Kg','Gram','Litre','ml','Plate','Box','Pack','Dozen','Set','Person','Bowl','Bucket','Pan','Each'];
 function cateringRows(){return document.querySelectorAll('#catRows tr');}
@@ -538,9 +605,9 @@ async function importPreviousCateringOrders(){
 
 function initCatering(){if(!$('catRows'))return;if(!$('catRows').children.length)newCateringOrder();renderCateringOrders();}
 
-function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="catering")setTimeout(initCatering,40);window.scrollTo({top:0,behavior:"smooth"});}
+function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="vendor")setTimeout(initVendor,40);if(id==="catering")setTimeout(initCatering,40);window.scrollTo({top:0,behavior:"smooth"});}
 function scrollTable(id,n){$(id).scrollBy({left:n,behavior:"smooth"});}
-function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();if($("catOrderList"))renderCateringOrders();}
+function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();if($("catOrderList"))renderCateringOrders();if($("vendorOrderList"))renderVendorOrders();}
 function populateSelects(){
  ensureMasterData();
  let suppliers=db.suppliers.slice().sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:"base",numeric:true}));

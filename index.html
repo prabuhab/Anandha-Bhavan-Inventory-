@@ -442,6 +442,14 @@ table tbody tr:hover{
   #vendorPrintSheet .vp-table td:nth-child(3){width:25%!important;text-align:center!important;font-weight:800!important}
 }
 
+
+@media print{
+ #menulibrary.active .no-print{display:none!important}
+ #menulibrary.active .notice{font-size:9pt!important}
+ #menulibrary.active input,#menulibrary.active select{border:0!important;background:transparent!important}
+ #menulibrary.active table{font-size:10pt!important}
+}
+
 </style>
 
 <!-- Anandha Bhavan App Icon -->
@@ -502,6 +510,7 @@ table tbody tr:hover{
   <button onclick="page('documents',this)">📎 Bills & Files</button>
   <button onclick="page('feedback',this)">💬 Feedback</button>
   <button onclick="page('catering',this)">🍽️ Catering</button>
+  <button onclick="page('menulibrary',this)">📖 Menu Library</button>
   <button onclick="page('vendor',this)">🧾 Vendor Order</button>
   <button onclick="page('settings',this)">⚙️ Settings</button>
  </nav>
@@ -624,6 +633,60 @@ table tbody tr:hover{
  </div>
 </section>
 
+
+
+<section id="menulibrary" class="page">
+ <div class="titlebar">
+  <div><h2>Menu Library & Production Planner</h2>
+   <p class="subtitle">Choose a ready menu, enter PAX, calculate suggested production quantities, edit them, and send the menu to Catering Order.</p>
+  </div>
+  <div class="toolbar no-print">
+   <button class="btn green" onclick="newMenuTemplate()">+ New Custom Menu</button>
+   <button class="btn orange" onclick="printActivePage()">🖨️ Print / Save PDF</button>
+  </div>
+ </div>
+
+ <div class="card no-print">
+  <div class="formgrid">
+   <div class="field"><label>Menu Category</label><select id="mlCategory" onchange="renderMenuTemplates()"></select></div>
+   <div class="field"><label>Choose Menu</label><select id="mlTemplate" onchange="loadMenuTemplate()"></select></div>
+   <div class="field"><label>PAX / Guests</label><input id="mlPax" type="number" min="1" value="100" oninput="calcProduction()"></div>
+   <div class="field"><label>Buffer / Wastage %</label><input id="mlBuffer" type="number" min="0" step="1" value="5" oninput="calcProduction()"></div>
+  </div>
+  <div class="toolbar" style="margin-top:10px">
+   <button class="btn green" onclick="calcProduction()">⚙️ Calculate Production</button>
+   <button class="btn soft" onclick="saveCurrentMenuAsCustom()">💾 Save as My Menu</button>
+   <button class="btn orange" onclick="sendMenuToCatering()">🍽️ Use in Catering Order</button>
+  </div>
+ </div>
+
+ <div class="card">
+  <div class="titlebar"><div><h3 id="mlTitle">Selected Menu</h3><p class="subtitle" id="mlInfo"></p></div></div>
+  <div style="overflow-x:auto">
+   <table>
+    <thead><tr><th>S.No</th><th>Menu Item</th><th>Suggested Production</th><th>Unit</th><th class="no-print">Edit / Remove</th></tr></thead>
+    <tbody id="mlRows"></tbody>
+   </table>
+  </div>
+  <div class="notice" style="margin-top:12px"><b>Production guide:</b> Quantities are editable planning defaults, not fixed recipes. Adjust for your portion size, service style and kitchen standard, then save as your own menu.</div>
+ </div>
+
+ <div class="card">
+  <h3>Quotation / Tax Calculator</h3>
+  <div class="formgrid">
+   <div class="field"><label>Food / Menu Subtotal £</label><input id="mlSubtotal" type="number" min="0" step="0.01" value="0" oninput="calcQuote()"></div>
+   <div class="field"><label>Tax / VAT %</label><input id="mlTax" type="number" min="0" step="0.01" value="0" oninput="calcQuote()"></div>
+   <div class="field"><label>Discount £</label><input id="mlDiscount" type="number" min="0" step="0.01" value="0" oninput="calcQuote()"></div>
+   <div class="field"><label>Delivery / Service Charge £</label><input id="mlService" type="number" min="0" step="0.01" value="0" oninput="calcQuote()"></div>
+  </div>
+  <div class="stats" style="margin-top:12px">
+   <div class="stat"><span>Subtotal</span><b id="mlQSub">£0.00</b></div>
+   <div class="stat"><span>Tax / VAT</span><b id="mlQTax">£0.00</b></div>
+   <div class="stat"><span>Grand Total</span><b id="mlQGrand">£0.00</b></div>
+  </div>
+  <p class="subtitle">Tax/VAT rate is intentionally editable. Set the rate that applies to your transaction/accounting treatment.</p>
+ </div>
+</section>
 
 <section id="vendor" class="page">
  <div class="titlebar"><div><h2>Supplier / Vendor Purchase Order</h2><p class="subtitle">Choose a supplier to show only that supplier’s items. Enter the required quantity, then print or save as PDF and share with the vendor.</p></div>
@@ -1015,6 +1078,124 @@ function printActivePage(){
  }
  window.print();
 }
+
+const HAB_MENU_LIBRARY=[
+ {cat:"South Indian Breakfast",name:"Classic Breakfast 01",items:[
+  ["Idli",2.5,"Pieces"],["Medhu Vada",1,"Pieces"],["Ven Pongal",0.18,"kg"],["Kesari",0.09,"kg"],["Sambar",0.18,"L"],["Coconut Chutney",0.07,"kg"],["Tomato Chutney",0.05,"kg"],["Filter Coffee",0.15,"L"]]},
+ {cat:"South Indian Breakfast",name:"Classic Breakfast 02",items:[
+  ["Idli",2,"Pieces"],["Rava Kichadi",0.18,"kg"],["Medhu Vada",1,"Pieces"],["Kesari",0.09,"kg"],["Sambar",0.18,"L"],["Coconut Chutney",0.07,"kg"],["Mint Chutney",0.04,"kg"],["Tea / Coffee",0.15,"L"]]},
+ {cat:"South Indian Breakfast",name:"Poori Breakfast",items:[
+  ["Poori",3,"Pieces"],["Potato Masala",0.18,"kg"],["Idli",1.5,"Pieces"],["Medhu Vada",1,"Pieces"],["Kesari",0.09,"kg"],["Sambar",0.15,"L"],["Coconut Chutney",0.06,"kg"],["Coffee / Tea",0.15,"L"]]},
+ {cat:"South Indian Breakfast",name:"Dosa & Pongal Breakfast",items:[
+  ["Dosa",2,"Pieces"],["Ven Pongal",0.16,"kg"],["Medhu Vada",1,"Pieces"],["Kesari",0.08,"kg"],["Sambar",0.18,"L"],["Coconut Chutney",0.07,"kg"],["Tomato Chutney",0.05,"kg"]]},
+ {cat:"South Indian Breakfast",name:"Appam Breakfast",items:[
+  ["Appam",3,"Pieces"],["Vegetable Stew",0.20,"L"],["Medhu Vada",1,"Pieces"],["Kesari",0.08,"kg"],["Coconut Chutney",0.05,"kg"],["Coffee / Tea",0.15,"L"]]},
+
+ {cat:"Andhra Meals",name:"Andhra Meals 01",items:[
+  ["White Rice",0.08,"kg"],["Mudda Pappu",0.06,"kg"],["Ghee",0.012,"kg"],["Andhra Sambar",0.16,"L"],["Rasam",0.12,"L"],["Vegetable Koora",0.10,"kg"],["Vepudu",0.09,"kg"],["Pulusu",0.10,"L"],["Pachadi",0.035,"kg"],["Pickle",0.015,"kg"],["Curd",0.10,"kg"],["Papad",1,"Pieces"],["Sweet",1,"Pieces"],["Buttermilk",0.12,"L"],["Banana",1,"Pieces"]]},
+ {cat:"Andhra Meals",name:"Andhra Meals 02",items:[
+  ["White Rice",0.08,"kg"],["Tomato Pappu",0.06,"kg"],["Ghee",0.012,"kg"],["Drumstick Sambar",0.16,"L"],["Pepper Rasam",0.12,"L"],["Beans Koora",0.10,"kg"],["Potato Vepudu",0.09,"kg"],["Majjiga Pulusu",0.10,"L"],["Gongura Pachadi",0.03,"kg"],["Pickle",0.015,"kg"],["Curd",0.10,"kg"],["Papad",1,"Pieces"],["Payasam",0.10,"L"],["Buttermilk",0.12,"L"],["Banana",1,"Pieces"]]},
+
+ {cat:"Kerala Meals / Sadhya",name:"Kerala Sadhya 01",items:[
+  ["Matta Rice",0.09,"kg"],["Parippu",0.055,"kg"],["Ghee",0.012,"kg"],["Sambar",0.16,"L"],["Rasam",0.12,"L"],["Avial",0.09,"kg"],["Olan",0.08,"kg"],["Kalan",0.07,"kg"],["Erissery",0.08,"kg"],["Thoran",0.08,"kg"],["Inji Puli",0.025,"kg"],["Pickle",0.015,"kg"],["Pappadam",1,"Pieces"],["Moru",0.12,"L"],["Payasam",0.11,"L"]]},
+ {cat:"Kerala Meals / Sadhya",name:"Kerala Sadhya 02",items:[
+  ["Matta Rice",0.09,"kg"],["Parippu",0.055,"kg"],["Ghee",0.012,"kg"],["Varutharacha Sambar",0.16,"L"],["Rasam",0.12,"L"],["Avial",0.09,"kg"],["Pineapple Pulissery",0.09,"kg"],["Cabbage Thoran",0.08,"kg"],["Erissery",0.08,"kg"],["Olan",0.08,"kg"],["Inji Puli",0.025,"kg"],["Pappadam",1,"Pieces"],["Moru",0.12,"L"],["Paal Ada",0.11,"L"],["Banana Chips",0.025,"kg"]]},
+
+ {cat:"Tamil Wedding Feast",name:"Kalyana Virundhu 01",items:[
+  ["White Rice",0.08,"kg"],["Paruppu",0.05,"kg"],["Ghee",0.012,"kg"],["Arachuvitta Sambar",0.16,"L"],["Rasam",0.12,"L"],["Kootu",0.09,"kg"],["Poriyal",0.08,"kg"],["Avial",0.08,"kg"],["Vatha Kuzhambu",0.07,"L"],["Mor Kuzhambu",0.09,"L"],["Kosumalli",0.06,"kg"],["Pickle",0.015,"kg"],["Appalam",1,"Pieces"],["Payasam",0.11,"L"],["Sweet",1,"Pieces"]]},
+ {cat:"Tamil Wedding Feast",name:"Kalyana Virundhu 02",items:[
+  ["White Rice",0.08,"kg"],["Paruppu",0.05,"kg"],["Ghee",0.012,"kg"],["Kadamba Sambar",0.16,"L"],["Jeera Rasam",0.12,"L"],["Chow Chow Kootu",0.09,"kg"],["Beans Poriyal",0.08,"kg"],["Potato Roast",0.09,"kg"],["Kara Kuzhambu",0.07,"L"],["Mor Kuzhambu",0.09,"L"],["Sundal Salad",0.06,"kg"],["Pickle",0.015,"kg"],["Appalam",1,"Pieces"],["Semiya Payasam",0.11,"L"],["Mysore Pak",1,"Pieces"]]},
+
+ {cat:"Chettinad Food Festival",name:"Chettinad Veg Festival 01",items:[
+  ["Seeraga Samba Rice",0.08,"kg"],["Chettinad Vegetable Kurma",0.12,"kg"],["Kara Kuzhambu",0.10,"L"],["Milagu Rasam",0.12,"L"],["Keerai Kootu",0.09,"kg"],["Vazhakkai Roast",0.09,"kg"],["Mushroom Pepper Fry",0.09,"kg"],["Kuzhi Paniyaram",2,"Pieces"],["Coconut Chutney",0.05,"kg"],["Curd Rice",0.10,"kg"],["Appalam",1,"Pieces"],["Pickle",0.015,"kg"],["Sweet",1,"Pieces"],["Payasam",0.10,"L"],["Buttermilk",0.12,"L"]]},
+
+ {cat:"North Indian Buffet",name:"North Indian Buffet 01",items:[
+  ["Jeera Rice",0.075,"kg"],["Vegetable Pulao",0.075,"kg"],["Dal Tadka",0.14,"L"],["Paneer Butter Masala",0.12,"kg"],["Chana Masala",0.10,"kg"],["Aloo Gobi",0.09,"kg"],["Naan / Roti",2.5,"Pieces"],["Raita",0.08,"kg"],["Green Salad",0.06,"kg"],["Pickle",0.015,"kg"],["Papad",1,"Pieces"],["Gulab Jamun",1,"Pieces"],["Kheer",0.10,"L"]]},
+
+ {cat:"Mixed Indian & Indo-Chinese Buffet",name:"Mixed Buffet 01",items:[
+  ["Vegetable Fried Rice",0.08,"kg"],["Hakka Noodles",0.08,"kg"],["Gobi Manchurian",0.10,"kg"],["Chilli Paneer",0.10,"kg"],["Vegetable Spring Roll",1.5,"Pieces"],["Jeera Rice",0.06,"kg"],["Dal Tadka",0.12,"L"],["Paneer Curry",0.10,"kg"],["Naan",2,"Pieces"],["Raita",0.07,"kg"],["Salad",0.05,"kg"],["Gulab Jamun",1,"Pieces"],["Ice Cream",1,"Portion"]]}
+];
+
+let mlWorking=[];
+function mlCustomMenus(){return Array.isArray(db.menuTemplates)?db.menuTemplates:[];}
+function initMenuLibrary(){
+ if(!$("mlCategory"))return;
+ db.menuTemplates=Array.isArray(db.menuTemplates)?db.menuTemplates:[];
+ const cats=[...new Set([...HAB_MENU_LIBRARY,...mlCustomMenus()].map(x=>x.cat))].sort();
+ const old=$("mlCategory").value;
+ $("mlCategory").innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join("");
+ if(old&&cats.includes(old))$("mlCategory").value=old;
+ renderMenuTemplates();
+}
+function renderMenuTemplates(){
+ const cat=$("mlCategory").value;
+ const menus=[...HAB_MENU_LIBRARY,...mlCustomMenus()].filter(x=>x.cat===cat);
+ $("mlTemplate").innerHTML=menus.map((m,i)=>`<option value="${i}">${esc(m.name)}</option>`).join("");
+ loadMenuTemplate();
+}
+function currentMenuList(){
+ const cat=$("mlCategory").value;
+ return [...HAB_MENU_LIBRARY,...mlCustomMenus()].filter(x=>x.cat===cat);
+}
+function loadMenuTemplate(){
+ const menus=currentMenuList(),m=menus[+$("mlTemplate").value||0];
+ if(!m){mlWorking=[];renderMLRows();return;}
+ mlWorking=(m.items||[]).map(x=>({item:x[0]||x.item,perPax:+(x[1]??x.perPax)||0,unit:x[2]||x.unit||"kg",qty:0}));
+ $("mlTitle").textContent=m.name;
+ calcProduction();
+}
+function calcProduction(){
+ const pax=Math.max(1,+$("mlPax").value||1),buf=Math.max(0,+$("mlBuffer").value||0);
+ mlWorking.forEach(x=>x.qty=x.perPax*pax*(1+buf/100));
+ renderMLRows();
+ $("mlInfo").textContent=`${pax} PAX • ${buf}% buffer • all quantities can be edited`;
+}
+function niceQty(q,unit){
+ if(unit==="Pieces"||unit==="Portion"||unit==="Portions")return Math.ceil(q);
+ return Math.round(q*100)/100;
+}
+function renderMLRows(){
+ $("mlRows").innerHTML=mlWorking.length?mlWorking.map((x,n)=>`<tr>
+  <td>${n+1}</td><td><b>${esc(x.item)}</b></td>
+  <td><input type="number" min="0" step="0.01" value="${niceQty(x.qty,x.unit)}" onchange="mlWorking[${n}].qty=+this.value||0"></td>
+  <td><select onchange="mlWorking[${n}].unit=this.value"><option ${x.unit==="kg"?"selected":""}>kg</option><option ${x.unit==="L"?"selected":""}>L</option><option ${x.unit==="Pieces"?"selected":""}>Pieces</option><option ${x.unit==="Portion"?"selected":""}>Portion</option><option ${x.unit==="Tray"?"selected":""}>Tray</option><option ${x.unit==="Container"?"selected":""}>Container</option></select></td>
+  <td class="no-print"><button class="btn red" onclick="mlWorking.splice(${n},1);renderMLRows()">Remove</button></td>
+ </tr>`).join(""):'<tr><td colspan="5">No menu items.</td></tr>';
+}
+function newMenuTemplate(){
+ const name=prompt("New menu name:");if(!name)return;
+ const cat=prompt("Category:",$("mlCategory").value||"My Menus");if(!cat)return;
+ db.menuTemplates=Array.isArray(db.menuTemplates)?db.menuTemplates:[];
+ db.menuTemplates.push({cat,name,items:[]});save();initMenuLibrary();
+ $("mlCategory").value=cat;renderMenuTemplates();
+}
+function saveCurrentMenuAsCustom(){
+ const name=prompt("Save menu as:",$("mlTitle").textContent+" - My Standard");if(!name)return;
+ const cat=$("mlCategory").value||"My Menus";
+ db.menuTemplates=Array.isArray(db.menuTemplates)?db.menuTemplates:[];
+ const pax=Math.max(1,+$("mlPax").value||1),buf=Math.max(0,+$("mlBuffer").value||0),factor=pax*(1+buf/100);
+ db.menuTemplates.push({cat,name,items:mlWorking.map(x=>[x.item,factor?x.qty/factor:0,x.unit])});
+ save();initMenuLibrary();alert("Saved as your own editable menu standard.");
+}
+function sendMenuToCatering(){
+ if(!mlWorking.length)return alert("Please choose a menu first.");
+ page("catering",document.querySelector(".topnav button[onclick*=catering]"));
+ setTimeout(()=>{
+   if($("catGuests"))$("catGuests").value=$("mlPax").value;
+   // Replace catering lines with selected menu names, leaving price/quantity editable.
+   if(typeof catLines!=="undefined"){
+     catLines=mlWorking.map(x=>({item:x.item,unit:x.unit||"Pieces",price:0,qty:1}));
+     renderCatLines();
+   }
+   alert("Menu loaded into Catering Order. Please review quantity/unit and enter your selling prices.");
+ },80);
+}
+function calcQuote(){
+ const sub=+$("mlSubtotal").value||0,taxPct=+$("mlTax").value||0,disc=+$("mlDiscount").value||0,service=+$("mlService").value||0;
+ const tax=sub*taxPct/100,grand=Math.max(0,sub+tax+service-disc);
+ $("mlQSub").textContent=money(sub);$("mlQTax").textContent=money(tax);$("mlQGrand").textContent=money(grand);
+}
+
 let editVendorOrderId=null;
 function vendorSuppliers(){return (db.suppliers||[]).slice().sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));}
 function initVendor(){
@@ -1078,7 +1259,7 @@ async function importPreviousCateringOrders(){
 
 function initCatering(){if(!$('catRows'))return;if(!$('catRows').children.length)newCateringOrder();renderCateringOrders();}
 
-function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="vendor")setTimeout(initVendor,40);if(id==="catering")setTimeout(initCatering,40);window.scrollTo({top:0,behavior:"smooth"});}
+function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="vendor")setTimeout(initVendor,40);if(id==="catering")setTimeout(initCatering,40);if(id==="menulibrary")setTimeout(initMenuLibrary,40);window.scrollTo({top:0,behavior:"smooth"});}
 function scrollTable(id,n){$(id).scrollBy({left:n,behavior:"smooth"});}
 function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();if($("catOrderList"))renderCateringOrders();if($("vendorOrderList"))renderVendorOrders();}
 

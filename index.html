@@ -450,6 +450,39 @@ table tbody tr:hover{
  #menulibrary.active table{font-size:10pt!important}
 }
 
+
+/* Make all top navigation modules clearly reachable on mobile */
+.topnav, .navrow, .appnav {
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
+.topnav button, .navrow button, .appnav button {
+  flex:0 0 auto !important;
+  white-space:nowrap !important;
+}
+@media(max-width:700px){
+  .topnav button, .navrow button, .appnav button{
+    min-width:max-content !important;
+  }
+}
+
+
+#menulibrary .ingredient-summary{font-size:.92rem;line-height:1.45;color:#526457}
+@media(max-width:700px){
+ #menulibrary table{min-width:980px}
+ #menulibrary .ingredient-summary{font-size:.88rem}
+}
+
+
+#mlQDiscount{color:#b14a34!important}
+#mlQService{color:#c86b10!important}
+#mlQGrand{color:#2f6f36!important;font-size:1.15em}
+@media print{
+  #mlQDiscount{color:#b14a34!important}
+  #mlQService{color:#c86b10!important}
+  #mlQGrand{color:#2f6f36!important}
+}
+
 </style>
 
 <!-- Anandha Bhavan App Icon -->
@@ -511,13 +544,21 @@ table tbody tr:hover{
   <button onclick="page('feedback',this)">💬 Feedback</button>
   <button onclick="page('catering',this)">🍽️ Catering</button>
   <button onclick="page('menulibrary',this)">📖 Menu Library</button>
-  <button onclick="page('vendor',this)">🧾 Vendor Order</button>
+<button onclick="page('vendor',this)">🧾 Vendor Order</button>
   <button onclick="page('settings',this)">⚙️ Settings</button>
  </nav>
 </header>
 
 <main>
 <section id="home" class="page active">
+<div id="menuLibraryHomeShortcut" class="card no-print" style="margin:12px 0">
+  <div class="titlebar">
+    <div><h3>📖 Menu Library & Production Planner</h3>
+    <p class="subtitle">Breakfast, Andhra Manchi Bhojanam, Kerala Sadhya, Chettinad Virundhu, Karnataka Oota, Tamil Nadu Arusuvai Virundhu, North Indian and Buffet menus with PAX production calculation.</p></div>
+    <button class="btn orange" onclick="page('menulibrary',document.querySelector('.topnav button[onclick*=menulibrary]'))">Open Menu Library</button>
+  </div>
+</div>
+
  <div class="titlebar"><div><h2>Stock Control Dashboard</h2><p class="subtitle">Live view of opening stock, purchases, kitchen issues, outside movement, closing stock and £ value.</p></div>
   <div class="toolbar no-print"><div class="field"><label>From</label><input type="date" id="dashFrom"></div><div class="field"><label>To</label><input type="date" id="dashTo"></div><button class="btn green" onclick="refreshAll()">Apply</button></div>
  </div>
@@ -638,7 +679,7 @@ table tbody tr:hover{
 <section id="menulibrary" class="page">
  <div class="titlebar">
   <div><h2>Menu Library & Production Planner</h2>
-   <p class="subtitle">Choose a ready menu, enter PAX, calculate suggested production quantities, edit them, and send the menu to Catering Order.</p>
+   <p class="subtitle">Choose from the regional menu library plus Catering A–Z premium collections. A–Z includes 20 attractive menu combinations per collection with 18–22 course options, while regional sets remain unchanged. Enter PAX to calculate production quantities, edit them, and send the menu to Catering Order.</p>
   </div>
   <div class="toolbar no-print">
    <button class="btn green" onclick="newMenuTemplate()">+ New Custom Menu</button>
@@ -664,11 +705,11 @@ table tbody tr:hover{
   <div class="titlebar"><div><h3 id="mlTitle">Selected Menu</h3><p class="subtitle" id="mlInfo"></p></div></div>
   <div style="overflow-x:auto">
    <table>
-    <thead><tr><th>S.No</th><th>Menu Item</th><th>Suggested Production</th><th>Unit</th><th class="no-print">Edit / Remove</th></tr></thead>
+    <thead><tr><th>S.No</th><th>Specific Dish</th><th>Suggested Production</th><th>Unit</th><th>Ingredient Guide for Selected PAX</th><th class="no-print">Edit / Remove</th></tr></thead>
     <tbody id="mlRows"></tbody>
    </table>
   </div>
-  <div class="notice" style="margin-top:12px"><b>Production guide:</b> Quantities are editable planning defaults, not fixed recipes. Adjust for your portion size, service style and kitchen standard, then save as your own menu.</div>
+  <div class="notice" style="margin-top:12px"><b>Ingredient guide:</b> Specific dish names are used (for example Onion Sambar, Brinjal Sambar, Dosakaya Pachadi, Dondakaya Vepudu, Ash Gourd & Pumpkin Olan). Ingredient quantities scale automatically with PAX and Buffer. Every number is editable before you use it.<br><br><b>Production guide:</b> Quantities are editable planning defaults, not fixed recipes. Adjust for your portion size, service style and kitchen standard, then save as your own menu.</div>
  </div>
 
  <div class="card">
@@ -682,6 +723,8 @@ table tbody tr:hover{
   <div class="stats" style="margin-top:12px">
    <div class="stat"><span>Subtotal</span><b id="mlQSub">£0.00</b></div>
    <div class="stat"><span>Tax / VAT</span><b id="mlQTax">£0.00</b></div>
+   <div class="stat"><span>Discount</span><b id="mlQDiscount">-£0.00</b></div>
+   <div class="stat"><span>Delivery / Service Charge</span><b id="mlQService">+£0.00</b></div>
    <div class="stat"><span>Grand Total</span><b id="mlQGrand">£0.00</b></div>
   </div>
   <p class="subtitle">Tax/VAT rate is intentionally editable. Set the rate that applies to your transaction/accounting treatment.</p>
@@ -1079,41 +1122,383 @@ function printActivePage(){
  window.print();
 }
 
+
+const HAB_RECIPE_GUIDE={
+ "Onion Sambar":{yield:18,unit:"L",ing:[["Toor Dal",5,"kg"],["Small Onion",7,"kg"],["Tomato",3,"kg"],["Tamarind",0.9,"kg"],["Sambar Powder",0.7,"kg"],["Coriander Leaves",0.5,"kg"]]},
+ "Brinjal Sambar":{yield:18,unit:"L",ing:[["Toor Dal",5,"kg"],["Brinjal",8,"kg"],["Tomato",3,"kg"],["Tamarind",0.9,"kg"],["Sambar Powder",0.7,"kg"]]},
+ "Drumstick Sambar":{yield:18,unit:"L",ing:[["Toor Dal",5,"kg"],["Drumstick",7,"kg"],["Onion",3,"kg"],["Tomato",3,"kg"],["Tamarind",0.9,"kg"],["Sambar Powder",0.7,"kg"]]},
+ "Mixed Vegetable Sambar":{yield:18,unit:"L",ing:[["Toor Dal",5,"kg"],["Mixed Vegetables",8,"kg"],["Onion",3,"kg"],["Tomato",3,"kg"],["Tamarind",0.9,"kg"],["Sambar Powder",0.7,"kg"]]},
+ "Pepper Jeera Rasam":{yield:12,unit:"L",ing:[["Tamarind",0.55,"kg"],["Tomato",4,"kg"],["Pepper",0.18,"kg"],["Cumin",0.2,"kg"],["Toor Dal Water / Dal",1.2,"kg"]]},
+ "Tomato Rasam":{yield:12,unit:"L",ing:[["Tomato",6,"kg"],["Tamarind",0.45,"kg"],["Rasam Powder",0.35,"kg"],["Coriander",0.4,"kg"]]},
+ "Dosakaya Pachadi":{yield:6,unit:"kg",ing:[["Dosakaya / Yellow Cucumber",6,"kg"],["Curd",4,"kg"],["Green Chilli",0.25,"kg"],["Mustard",0.12,"kg"],["Coconut",1.2,"kg"]]},
+ "Gongura Pachadi":{yield:4,unit:"kg",ing:[["Gongura Leaves",5,"kg"],["Red Chilli",0.35,"kg"],["Garlic",0.35,"kg"],["Sesame / Groundnut",0.8,"kg"]]},
+ "Beerakaya Pachadi":{yield:5.5,unit:"kg",ing:[["Ridge Gourd",6,"kg"],["Tamarind",0.4,"kg"],["Chilli",0.3,"kg"],["Roasted Dal",0.7,"kg"]]},
+ "Dondakaya Vepudu":{yield:9,unit:"kg",ing:[["Ivy Gourd / Dondakaya",10,"kg"],["Onion",2.5,"kg"],["Chilli Powder",0.25,"kg"],["Oil",1.2,"L"]]},
+ "Dondakaya Koora":{yield:10,unit:"kg",ing:[["Ivy Gourd / Dondakaya",10,"kg"],["Onion",3,"kg"],["Tomato",2,"kg"],["Coconut",1,"kg"]]},
+ "Gutti Vankaya Masala":{yield:10,unit:"kg",ing:[["Baby Brinjal",11,"kg"],["Peanut",1.6,"kg"],["Sesame",0.8,"kg"],["Coconut",1,"kg"],["Onion",3,"kg"],["Tamarind",0.45,"kg"]]},
+ "Baby Potato Roast Masala":{yield:9,unit:"kg",ing:[["Baby Potato",10,"kg"],["Onion",2,"kg"],["Chilli Powder",0.25,"kg"],["Oil",1.2,"L"]]},
+ "Beans Carrot Poriyal":{yield:8,unit:"kg",ing:[["Beans",5,"kg"],["Carrot",4,"kg"],["Coconut",1.2,"kg"],["Onion",1.5,"kg"]]},
+ "Chow Chow Kootu":{yield:9,unit:"kg",ing:[["Chow Chow",8,"kg"],["Moong Dal",2.2,"kg"],["Coconut",1.3,"kg"],["Cumin",0.15,"kg"]]},
+ "Snake Gourd Kootu":{yield:9,unit:"kg",ing:[["Snake Gourd",8,"kg"],["Moong Dal",2.2,"kg"],["Coconut",1.3,"kg"],["Cumin",0.15,"kg"]]},
+ "Cabbage Carrot Thoran":{yield:8,unit:"kg",ing:[["Cabbage",6,"kg"],["Carrot",3,"kg"],["Coconut",1.4,"kg"],["Green Chilli",0.2,"kg"]]},
+ "Beans Thoran":{yield:8,unit:"kg",ing:[["Beans",8,"kg"],["Coconut",1.4,"kg"],["Shallot",1.2,"kg"],["Green Chilli",0.2,"kg"]]},
+ "Ash Gourd & Pumpkin Olan":{yield:8,unit:"kg",ing:[["Ash Gourd",6,"kg"],["Yellow Pumpkin",3,"kg"],["Red Cowpea",1.3,"kg"],["Coconut Milk",4.5,"L"],["Coconut Oil",0.45,"L"]]},
+ "Ash Gourd Olan":{yield:8,unit:"kg",ing:[["Ash Gourd",8,"kg"],["Red Cowpea",1.3,"kg"],["Coconut Milk",4.5,"L"],["Coconut Oil",0.45,"L"]]},
+ "Yam & Raw Banana Kalan":{yield:7,unit:"kg",ing:[["Yam",4,"kg"],["Raw Banana",4,"kg"],["Curd",5,"kg"],["Coconut",1.5,"kg"],["Pepper",0.12,"kg"]]},
+ "Yellow Pumpkin Pulissery":{yield:9,unit:"L",ing:[["Yellow Pumpkin",7,"kg"],["Curd",6,"kg"],["Coconut",1.5,"kg"],["Green Chilli",0.2,"kg"],["Cumin",0.12,"kg"]]},
+ "Pineapple Pulissery":{yield:9,unit:"L",ing:[["Pineapple",6,"kg"],["Curd",6,"kg"],["Coconut",1.5,"kg"],["Green Chilli",0.2,"kg"],["Cumin",0.12,"kg"]]},
+ "Pumpkin Erissery":{yield:8,unit:"kg",ing:[["Yellow Pumpkin",7,"kg"],["Black Eyed Peas / Cowpea",1.8,"kg"],["Coconut",1.6,"kg"],["Cumin",0.12,"kg"]]},
+ "Raw Banana Erissery":{yield:8,unit:"kg",ing:[["Raw Banana",7,"kg"],["Cowpea",1.8,"kg"],["Coconut",1.6,"kg"],["Cumin",0.12,"kg"]]},
+ "Cucumber Kichadi":{yield:6,unit:"kg",ing:[["Cucumber",6,"kg"],["Curd",4.5,"kg"],["Coconut",1.2,"kg"],["Mustard",0.12,"kg"]]},
+ "Pineapple Pachadi":{yield:6,unit:"kg",ing:[["Pineapple",5.5,"kg"],["Curd",4.5,"kg"],["Coconut",1.2,"kg"],["Mustard",0.12,"kg"]]},
+ "Vazhakkai Mezhukkupuratti":{yield:8,unit:"kg",ing:[["Raw Banana",9,"kg"],["Onion / Shallot",1.5,"kg"],["Coconut Oil",0.8,"L"],["Chilli",0.18,"kg"]]},
+ "White Rice":{yield:8,unit:"kg",ing:[["Raw Rice",8,"kg"],["Water",14,"L"]]},
+ "Matta Rice":{yield:10,unit:"kg",ing:[["Raw Matta Rice",10,"kg"],["Water",22,"L"]]},
+ "Jeera Rice":{yield:8,unit:"kg",ing:[["Basmati Rice",8,"kg"],["Cumin",0.25,"kg"],["Ghee / Oil",0.8,"kg"]]},
+ "Vegetable Pulao":{yield:9,unit:"kg",ing:[["Basmati Rice",7,"kg"],["Mixed Vegetables",4,"kg"],["Onion",2.5,"kg"],["Ghee / Oil",0.9,"kg"]]},
+ "Idli":{yield:250,unit:"Pieces",ing:[["Idli Rice",7,"kg"],["Urad Dal",2,"kg"],["Fenugreek",0.1,"kg"]]},
+ "Medhu Vada":{yield:100,unit:"Pieces",ing:[["Urad Dal",5,"kg"],["Onion",2,"kg"],["Green Chilli",0.3,"kg"],["Oil for Frying",4,"L"]]},
+ "Ven Pongal":{yield:18,unit:"kg",ing:[["Raw Rice",8,"kg"],["Moong Dal",3,"kg"],["Ghee",1.5,"kg"],["Pepper",0.18,"kg"],["Cumin",0.22,"kg"],["Cashew",0.7,"kg"]]},
+ "Rava Kichadi":{yield:18,unit:"kg",ing:[["Rava",8,"kg"],["Mixed Vegetables",5,"kg"],["Onion",3,"kg"],["Oil / Ghee",1.2,"L"]]},
+ "Rava Upma":{yield:17,unit:"kg",ing:[["Rava",8,"kg"],["Onion",3,"kg"],["Oil",1,"L"],["Cashew",0.5,"kg"]]},
+ "Kesari":{yield:9,unit:"kg",ing:[["Rava",4,"kg"],["Sugar",5,"kg"],["Ghee",1.5,"kg"],["Cashew",0.6,"kg"],["Raisin",0.4,"kg"]]},
+ "Poori":{yield:300,unit:"Pieces",ing:[["Wheat Flour",12,"kg"],["Oil for Frying",6,"L"]]},
+ "Potato Masala":{yield:18,unit:"kg",ing:[["Potato",14,"kg"],["Onion",4,"kg"],["Green Chilli",0.3,"kg"],["Oil",0.8,"L"]]},
+ "Coconut Chutney":{yield:7,unit:"kg",ing:[["Coconut",5,"kg"],["Roasted Gram",1.5,"kg"],["Green Chilli",0.3,"kg"],["Ginger",0.25,"kg"]]},
+ "Tomato Chutney":{yield:6,unit:"kg",ing:[["Tomato",6,"kg"],["Onion",2,"kg"],["Red Chilli",0.25,"kg"],["Oil",0.5,"L"]]},
+ "Kara Chutney":{yield:6,unit:"kg",ing:[["Onion",4,"kg"],["Tomato",4,"kg"],["Red Chilli",0.3,"kg"],["Oil",0.5,"L"]]},
+ "Filter Coffee":{yield:15,unit:"L",ing:[["Milk",12,"L"],["Coffee Powder",0.9,"kg"],["Sugar",2.5,"kg"]]},
+ "Tea":{yield:15,unit:"L",ing:[["Milk",10,"L"],["Tea Powder",0.45,"kg"],["Sugar",2.5,"kg"]]},
+ "Paneer Butter Masala":{yield:12,unit:"kg",ing:[["Paneer",8,"kg"],["Tomato",6,"kg"],["Onion",3,"kg"],["Butter",1.2,"kg"],["Cream",1.5,"L"]]},
+ "Dal Tadka":{yield:14,unit:"L",ing:[["Toor / Moong Dal",5,"kg"],["Tomato",3,"kg"],["Onion",2.5,"kg"],["Ghee",0.8,"kg"]]},
+ "Gobi Manchurian":{yield:10,unit:"kg",ing:[["Cauliflower",10,"kg"],["Corn Flour",2,"kg"],["Capsicum",2,"kg"],["Sauce Mix",2.5,"kg"],["Oil",3,"L"]]},
+ "Hakka Noodles":{yield:10,unit:"kg",ing:[["Noodles",8,"kg"],["Cabbage",3,"kg"],["Carrot",2,"kg"],["Capsicum",2,"kg"],["Sauce Mix",1.5,"kg"]]}
+};
+
+
+function rotatePick(arr,i,step=1){return arr[(i*step)%arr.length];}
+function unique25(items){
+ const out=[];
+ for(const x of items){if(x && !out.includes(x))out.push(x);}
+ return out.slice(0,25);
+}
+function make25Sets(cat,title,pools){
+ const sets=[];
+ for(let i=0;i<25;i++){
+   const items=[];
+   // exactly one choice from each named pool, then fill from extras.
+   for(const p of pools.core)items.push(rotatePick(p,i,p.step||1));
+   for(const p of pools.rotate)items.push(rotatePick(p.items,i,p.step||1));
+   for(const x of pools.fixed||[])items.push(x);
+   for(const p of pools.extras||[]){
+     for(let j=0;j<p.count;j++)items.push(rotatePick(p.items,i+j,(p.step||1)));
+   }
+   const final=unique25(items);
+   // Fill to 25 from filler pools without duplicates.
+   let k=0;
+   while(final.length<25 && pools.fillers?.length){
+     const arr=pools.fillers[k%pools.fillers.length];
+     const v=arr[(i+k)%arr.length];
+     if(v && !final.includes(v))final.push(v);
+     k++;
+     if(k>500)break;
+   }
+   sets.push({cat,name:`${title} – Menu ${String(i+1).padStart(2,"0")}`,items:ensureMealAccompaniment(cat,final.slice(0,25),i)});
+ }
+ return sets;
+}
+
+const SOUTH_BREAKFAST_POOLS={
+ core:[
+  ["Idli","Mini Idli Sambar","Podi Idli","Kanchipuram Idli","Rava Idli"],
+  ["Medhu Vada","Paruppu Vada","Keerai Vada","Masala Vada","Thayir Vada"],
+  ["Ven Pongal","Rava Kichadi","Rava Upma","Semiya Upma","Aval Upma"],
+  ["Kesari","Pineapple Kesari","Sakkarai Pongal","Semiya Kesari","Carrot Halwa"],
+  ["Onion Sambar","Drumstick Sambar","Brinjal Sambar","Mixed Vegetable Tiffin Sambar","Pumpkin Sambar"],
+  ["Coconut Chutney","Tomato Chutney","Kara Chutney","Mint Chutney","Peanut Chutney"]
+ ],
+ rotate:[
+  {items:["Masala Dosa","Ghee Roast Dosa","Onion Dosa","Set Dosa","Pesarattu"]},
+  {items:["Poori","Chapati","Appam","Idiyappam","Kuzhi Paniyaram"],step:2},
+  {items:["Potato Masala","Vegetable Kurma","Vegetable Stew","Kadala Curry","Chana Masala"],step:3},
+  {items:["Filter Coffee","Tea","Badam Milk","Sukku Coffee","Masala Milk"],step:4}
+ ],
+ fixed:["Milagai Podi","Ghee","Curd"],
+ extras:[
+  {count:2,items:["Onion Uttapam","Tomato Uttapam","Vegetable Uttapam","Kara Paniyaram","Sweet Paniyaram","Adai","Ragi Dosa"]},
+  {count:2,items:["Fruit Bowl","Banana","Boiled Sundal","Kosambari","Buttermilk"]}
+ ],
+ fillers:[
+  ["Lemon Sevai","Coconut Sevai","Tamarind Sevai","Vegetable Semiya","Pongal Gothsu"],
+  ["Mysore Bonda","Bajji","Samosa","Mini Poori","Sweet Appam"]
+ ]
+};
+
+const ANDHRA_POOLS={
+ core:[
+  ["Annam","Sona Masuri Annam","Pulihora","Mamidikaya Pulihora","Gongura Pulihora"],
+  ["Mudda Pappu","Tomato Pappu","Mamidikaya Pappu","Palakura Pappu","Dosakaya Pappu"],
+  ["Onion Sambar","Drumstick Sambar","Brinjal Sambar","Dosakaya Sambar","Mixed Vegetable Sambar"],
+  ["Miriyala Charu","Tomato Charu","Nimmakaya Charu","Jeera Pepper Charu","Pappu Charu"],
+  ["Gutti Vankaya Kura","Dondakaya Kura","Bendakaya Kura","Beerakaya Kura","Aratikaya Kura"],
+  ["Dondakaya Vepudu","Bendakaya Vepudu","Aratikaya Vepudu","Vankaya Vepudu","Aloo Vepudu"],
+  ["Dosakaya Pachadi","Gongura Pachadi","Beerakaya Pachadi","Vankaya Pachadi","Tomato Pachadi"],
+  ["Majjiga Pulusu","Mukkala Pulusu","Bendakaya Pulusu","Vankaya Pulusu","Dosakaya Pulusu"]
+ ],
+ rotate:[
+  {items:["Kandi Podi","Karivepaku Podi","Nuvvula Podi","Kobbari Podi","Palli Podi"]},
+  {items:["Avakaya","Gongura Pickle","Nimmakaya Uragaya","Usirikaya Pickle","Tomato Pickle"],step:2},
+  {items:["Garelu","Punugulu","Boorelu","Minapa Vada","Pesara Garelu"],step:3},
+  {items:["Paramannam","Semiya Payasam","Bellam Payasam","Poornam Boorelu","Rava Kesari"],step:4}
+ ],
+ fixed:["Neyyi","Perugu","Appadam","Vadiyalu"],
+ extras:[
+  {count:2,items:["Cabbage Kobbari Kura","Beans Kobbari Kura","Carrot Kobbari Kura","Sorakaya Kura","Chikkudukaya Kura"]},
+  {count:2,items:["Pachi Pulusu","Ulavacharu","Menthi Majjiga","Panakam","Neer Mor"]}
+ ],
+ fillers:[
+  ["Mamidikaya Pappu","Palakura Pappu","Bachali Kura Pappu","Gongura Pappu","Beerakaya Pappu"],
+  ["Ariselu","Kajjikayalu","Bobbatlu","Pootharekulu","Laddu"]
+ ]
+};
+
+const KERALA_POOLS={
+ core:[
+  ["Matta Rice","Kuthari Rice","Kerala Red Rice","Ghee Rice","Jeerakasala Rice"],
+  ["Parippu","Cherupayar Parippu","Toor Dal Parippu","Moong Dal Parippu","Parippu Curry"],
+  ["Drumstick Sambar","Mixed Vegetable Sambar","Pumpkin Sambar","Shallot Sambar","Varutharacha Sambar"],
+  ["Pepper Rasam","Tomato Rasam","Jeera Rasam","Lemon Rasam","Garlic Rasam"],
+  ["Ash Gourd & Pumpkin Olan","Ash Gourd Olan","Pumpkin Olan","Cowpea Olan","Mixed Gourd Olan"],
+  ["Yam & Raw Banana Kalan","Raw Banana Kalan","Yam Kalan","Pepper Kalan","Plantain Kalan"],
+  ["Pumpkin Erissery","Raw Banana Erissery","Yam Erissery","Mathanga Vanpayar Erissery","Chena Erissery"],
+  ["Pineapple Pulissery","Yellow Pumpkin Pulissery","Mango Pulissery","Nendran Pulissery","Cucumber Pulissery"],
+  ["Beans Thoran","Cabbage Thoran","Beetroot Thoran","Carrot Beans Thoran","Raw Banana Thoran"]
+ ],
+ rotate:[
+  {items:["Avial","Mixed Vegetable Avial","Plantain Avial","White Avial","Curd Avial"]},
+  {items:["Cucumber Kichadi","Beetroot Kichadi","Vendakka Kichadi","Pineapple Kichadi","Pavakka Kichadi"],step:2},
+  {items:["Pineapple Pachadi","Mango Pachadi","Beetroot Pachadi","Grape Pachadi","Pumpkin Pachadi"],step:3},
+  {items:["Koottukari","Kadala Koottukari","Yam Koottukari","Raw Banana Koottukari","Chena-Kaya Koottukari"],step:4},
+  {items:["Theeyal","Ulli Theeyal","Pavakka Theeyal","Vendakka Theeyal","Mushroom Theeyal"],step:2}
+ ],
+ fixed:["Inji Puli","Manga Curry","Naranga Achar","Moru","Pappadam","Banana Chips","Sharkara Varatti"],
+ extras:[
+  {count:2,items:["Paal Ada Pradhaman","Parippu Pradhaman","Ada Pradhaman","Palada Payasam","Semiya Payasam"]}
+ ],
+ fillers:[
+  ["Vazhakkai Mezhukkupuratti","Yam Mezhukkupuratti","Beans Mezhukkupuratti","Kovakka Mezhukkupuratti","Potato Mezhukkupuratti"]
+ ]
+};
+
+const CHETTINAD_POOLS={
+ core:[
+  ["Seeraga Samba Rice","Steamed Rice","Lemon Rice","Tamarind Rice","Coconut Rice"],
+  ["Thuvaram Paruppu","Pasi Paruppu","Kollu Masiyal","Keerai Paruppu","Paruppu Kadaisal"],
+  ["Murungakkai Sambar","Arachuvitta Sambar","Chinna Vengaya Sambar","Kathirikkai Sambar","Poosanikai Sambar"],
+  ["Milagu Rasam","Paruppu Rasam","Thakkali Rasam","Jeeraga Rasam","Kollu Rasam"],
+  ["Kathirikkai Kara Kuzhambu","Poondu Kuzhambu","Sundakkai Vatha Kuzhambu","Mochai Kuzhambu","Puli Kuzhambu"],
+  ["Chow Chow Kootu","Pudalangai Kootu","Poosanikai Kootu","Keerai Kootu","Vazhaithandu Kootu"],
+  ["Beans Paruppu Usili","Vazhaipoo Paruppu Usili","Kothavarangai Paruppu Usili","Beans Poriyal","Cabbage Poriyal"],
+  ["Baby Potato Chettinad Roast","Vazhakkai Podimas","Senai Roast","Urulai Kara Curry","Kovakkai Roast"]
+ ],
+ rotate:[
+  {items:["Mushroom Chettinad Masala","Cauliflower Chettinad Masala","Paneer Chettinad","Vegetable Chettinad Kurma","Kara Kuzhambu Vegetables"]},
+  {items:["Kuzhi Paniyaram","Kara Paniyaram","Vellai Paniyaram","Kandarappam","Adai"],step:2},
+  {items:["Thakkali Pachadi","Vellarikkai Pachadi","Onion Pachadi","Beetroot Pachadi","Carrot Pachadi"],step:3},
+  {items:["Manga Oorugai","Narthangai Oorugai","Elumichai Oorugai","Poondu Oorugai","Vadu Mango"],step:4},
+  {items:["Kavuni Arisi","Ukkarai","Paal Payasam","Pasi Paruppu Payasam","Kesari"],step:2}
+ ],
+ fixed:["Neyyi","Appalam","Mor Milagai","Thayir"],
+ extras:[
+  {count:2,items:["Keerai Masiyal","Araikeerai Poriyal","Murungai Keerai Poriyal","Sirukeerai Kootu","Manathakkali Keerai Masiyal"]}
+ ],
+ fillers:[
+  ["Kosumalli","Carrot Kosumalli","Cucumber Kosumalli","Sundal Salad","Pachai Payaru Sundal"]
+ ]
+};
+
+const KARNATAKA_POOLS={
+ core:[
+  ["Anna","Bisi Bele Bath","Vangi Bath","Puliyogare","Chitranna"],
+  ["Tovve","Hesaru Bele Tovve","Thogari Bele Tovve","Palak Tovve","Tomato Tovve"],
+  ["Huli","Mysore Huli","Majjige Huli","Badanekayi Huli","Soppina Huli"],
+  ["Mysore Saaru","Pepper Saaru","Tomato Saaru","Bassaru","Huli Saaru"],
+  ["Beans Carrot Palya","Cabbage Palya","Beetroot Palya","Soppina Palya","Avarekalu Palya"],
+  ["Badanekayi Ennegayi","Menasinakai Gojju","Pineapple Gojju","Bendekayi Gojju","Southekayi Gojju"],
+  ["Hesaru Bele Kosambari","Cucumber Kosambari","Carrot Kosambari","Moong Kosambari","Chana Kosambari"]
+ ],
+ rotate:[
+  {items:["Ragi Mudde","Akki Rotti","Jolada Rotti","Neer Dosa","Ragi Rotti"]},
+  {items:["Maddur Vada","Ambode","Masala Vada","Nippattu","Kodubale"],step:2},
+  {items:["Shavige Payasa","Gasagase Payasa","Kayi Holige","Obbattu","Mysore Pak"],step:3},
+  {items:["Mosaranna","Curd Rice","Mavinakayi Chitranna","Lemon Rice","Coconut Rice"],step:4}
+ ],
+ fixed:["Tuppa","Happala","Pickle","Curd"],
+ extras:[
+  {count:3,items:["Avarekalu Usli","Soppina Gojju","Kadle Usli","Beans Usli","Carrot Palya","Potato Palya","Seemebadnekayi Palya"]}
+ ],
+ fillers:[
+  ["Kesari Bath","Chow Chow Bath","Rava Unde","Dharwad Peda","Holige"]
+ ]
+};
+
+const TAMIL_POOLS={
+ core:[
+  ["Steamed Rice","Seeraga Samba Rice","Lemon Rice","Tamarind Rice","Coconut Rice"],
+  ["Paruppu","Pasi Paruppu","Keerai Paruppu","Kollu Masiyal","Paruppu Kadaisal"],
+  ["Murungakkai Sambar","Chinna Vengaya Sambar","Kathirikkai Sambar","Arachuvitta Sambar","Poosanikai Sambar"],
+  ["Milagu Jeeraga Rasam","Thakkali Rasam","Kollu Rasam","Paruppu Rasam","Elumichai Rasam"],
+  ["Sundakkai Vatha Kuzhambu","Poondu Kuzhambu","Kathirikkai Kara Kuzhambu","Mochai Kuzhambu","Vendakkai Puli Kuzhambu"],
+  ["Poosanikai Mor Kuzhambu","Vendakkai Mor Kuzhambu","Vadai Mor Kuzhambu","Keerai Mor Kuzhambu","Paruppu Urundai Mor Kuzhambu"],
+  ["Chow Chow Kootu","Pudalangai Poricha Kootu","Poosanikai Kootu","Keerai Kootu","Vazhaithandu Kootu"],
+  ["Beans Paruppu Usili","Vazhaipoo Paruppu Usili","Kothavarangai Paruppu Usili","Beans Poriyal","Cabbage Carrot Poriyal"],
+  ["Urulai Roast","Vazhakkai Podimas","Senai Roast","Kovakkai Poriyal","Baby Potato Roast Masala"]
+ ],
+ rotate:[
+  {items:["Araikeerai Masiyal","Sirukeerai Kootu","Murungai Keerai Poriyal","Manathakkali Keerai Masiyal","Pasalai Keerai Kootu"]},
+  {items:["Avial","Vegetable Avial","White Avial","Paruppu Usili Avial","Curd Avial"],step:2},
+  {items:["Kosumalli","Carrot Kosumalli","Vellarikkai Kosumalli","Sundal Salad","Pachai Payaru Sundal"],step:3},
+  {items:["Thayir Pachadi","Vellarikkai Pachadi","Beetroot Pachadi","Carrot Pachadi","Tomato Pachadi"],step:4},
+  {items:["Semiya Payasam","Paal Payasam","Pasi Paruppu Payasam","Sakkarai Pongal","Kesari"],step:2}
+ ],
+ fixed:["Neyyi","Appalam","Thayir","Manga Oorugai"],
+ extras:[
+  {count:2,items:["Medhu Vada","Paruppu Vada","Kuzhi Paniyaram","Kara Paniyaram","Adai"]}
+ ],
+ fillers:[
+  ["Mor Milagai","Vadu Mango","Narthangai Oorugai","Elumichai Oorugai","Poondu Oorugai"]
+ ]
+};
+
+const NORTH_POOLS={
+ core:[
+  ["Jeera Rice","Vegetable Pulao","Peas Pulao","Kashmiri Pulao","Steamed Basmati Rice"],
+  ["Dal Tadka","Dal Makhani","Dal Fry","Panchmel Dal","Rajma Masala"],
+  ["Paneer Butter Masala","Kadai Paneer","Palak Paneer","Shahi Paneer","Matar Paneer"],
+  ["Chana Masala","Kale Chane","Rajma Masala","Lobia Masala","Punjabi Kadhi"],
+  ["Aloo Gobi","Bhindi Do Pyaza","Mix Veg Jalfrezi","Navratan Korma","Dum Aloo"]
+ ],
+ rotate:[
+  {items:["Naan","Tandoori Roti","Lachha Paratha","Missi Roti","Kulcha"]},
+  {items:["Vegetable Samosa","Hara Bhara Kebab","Paneer Tikka","Aloo Tikki","Dahi Kebab"],step:2},
+  {items:["Boondi Raita","Cucumber Raita","Mint Raita","Pineapple Raita","Mixed Veg Raita"],step:3},
+  {items:["Gulab Jamun","Rice Kheer","Gajar Halwa","Rasmalai","Jalebi"],step:4}
+ ],
+ fixed:["Green Salad","Papad","Mint Chutney","Pickle"],
+ extras:[
+  {count:4,items:["Malai Kofta","Mushroom Do Pyaza","Paneer Lababdar","Veg Kofta Curry","Methi Malai Matar","Corn Palak","Kadhi Pakora","Aloo Matar"]}
+ ],
+ fillers:[
+  ["Fruit Custard","Kulfi","Rabri","Phirni","Moong Dal Halwa"]
+ ]
+};
+
+const MIXED_POOLS={
+ core:[
+  ["Vegetable Hakka Noodles","Schezwan Noodles","Singapore Noodles","Veg Chow Mein","Chilli Garlic Noodles"],
+  ["Vegetable Fried Rice","Schezwan Fried Rice","Mushroom Fried Rice","Burnt Garlic Fried Rice","Paneer Fried Rice"],
+  ["Gobi Manchurian","Veg Manchurian","Chilli Paneer","Chilli Mushroom","Honey Chilli Potato"],
+  ["Jeera Rice","Vegetable Pulao","Steamed Rice","Peas Pulao","Lemon Rice"],
+  ["Dal Tadka","Dal Makhani","Chana Masala","Rajma Masala","Paneer Butter Masala"],
+  ["Murungakkai Sambar","Onion Sambar","Brinjal Sambar","Mixed Vegetable Sambar","Tiffin Sambar"],
+  ["Milagu Rasam","Tomato Rasam","Jeera Rasam","Kollu Rasam","Lemon Rasam"]
+ ],
+ rotate:[
+  {items:["Vegetable Samosa","Hara Bhara Kebab","Paneer Tikka","Gobi 65","Veg Spring Roll"]},
+  {items:["Idli","Medhu Vada","Mini Idli","Kuzhi Paniyaram","Masala Dosa"],step:2},
+  {items:["Chapati","Naan","Tandoori Roti","Lachha Paratha","Kulcha"],step:3},
+  {items:["Boondi Raita","Cucumber Raita","Green Salad","Kosumalli","Sundal Salad"],step:4},
+  {items:["Gulab Jamun","Kesari","Rice Kheer","Fruit Salad","Ice Cream"],step:2}
+ ],
+ fixed:["Papad","Pickle"],
+ extras:[
+  {count:3,items:["Beans Poriyal","Aloo Gobi","Paneer Curry","Mix Veg Jalfrezi","Baby Potato Roast Masala","Cabbage Carrot Poriyal"]}
+ ],
+ fillers:[
+  ["Mint Chutney","Coconut Chutney","Tomato Chutney","Sweet Chutney","Chilli Sauce"]
+ ]
+};
+
+
+const HAB_MEAL_ACCOMPANIMENTS={
+ "Tamil Nadu – Arusuvai Virundhu":["Thengai Thuvaiyal","Paruppu Thuvaiyal","Kothamalli Thuvaiyal","Karuveppilai Thuvaiyal","Peerkangai Thuvaiyal","Kollu Thuvaiyal","Kathirikkai Thuvaiyal","Pudina Thuvaiyal","Ellu Thuvaiyal","Pirandai Thuvaiyal"],
+ "Chettinad Virundhu":["Thengai Thuvaiyal","Paruppu Thuvaiyal","Kothamalli Thuvaiyal","Karuveppilai Thuvaiyal","Ellu Thuvaiyal","Poondu Thuvaiyal"],
+ "Andhra Manchi Bhojanam":["Gongura Pachadi","Dosakaya Pachadi","Beerakaya Pachadi","Vankaya Pachadi","Tomato Pachadi","Kothimeera Pachadi","Allam Pachadi","Kobbari Pachadi","Usirikaya Pachadi"],
+ "Kerala Meals / Sadhya":["Inji Puli","Puli Inji","Beetroot Pachadi","Pineapple Pachadi","Cucumber Kichadi","Vendakka Kichadi","Pavakka Kichadi","Manga Kichadi","Naranga Achar","Manga Achar"],
+ "Karnataka Oota":["Hesaru Bele Kosambari","Cucumber Kosambari","Carrot Kosambari","Mavinakayi Chutney","Kayi Chutney","Shenga Chutney","Menasinakai Gojju","Pineapple Gojju","Southekayi Gojju"]
+};
+function ensureMealAccompaniment(cat,items,i){
+ const pool=HAB_MEAL_ACCOMPANIMENTS[cat];
+ if(!pool)return items;
+ const chosen=pool[i%pool.length];
+ const tags=["Thuvaiyal","Pachadi","Inji","Achar","Kichadi","Kosambari","Chutney","Gojju"];
+ const pos=items.findIndex(x=>tags.some(t=>String(x).includes(t)));
+ if(pos>=0)items[pos]=chosen; else if(items.length>=25)items[24]=chosen; else items.push(chosen);
+ return [...new Set(items)].slice(0,25);
+}
+
+
+// HAB Premium Catering A-Z Collections: original, caterer-style combinations.
+// These are not copied/proprietary caterer menus; labels A-Z keep the library brand-neutral.
+const HAB_CATERING_AZ_DEFS=[
+ ['A','Grand South Indian Wedding'],['B','Traditional Iyer Wedding'],['C','Iyengar Celebration'],['D','Premium Brahmin Virundhu'],
+ ['E','Udupi Grand Oota'],['F','Karnataka Wedding Feast'],['G','Andhra Grand Bhojanam'],['H','Kerala Grand Sadhya'],
+ ['I','Chettinad Premium Virundhu'],['J','Tamil Reception Special'],['K','South Indian Premium Buffet'],['L','Grand Reception Buffet'],
+ ['M','Multi-Cuisine Wedding'],['N','Live Counter Celebration'],['O','Muhurtham Breakfast & Lunch'],['P','Seemandham Traditional'],
+ ['Q','Grahapravesam Feast'],['R','Upanayanam Traditional'],['S','Sashtiapthapoorthi Feast'],['T','Corporate Premium'],
+ ['U','Family Celebration'],['V','Festival Feast'],['W','North Indian Premium'],['X','Indo-Chinese Fusion'],
+ ['Y','Luxury Wedding Buffet'],['Z','HAB Signature Grand Collection']
+];
+const AZ_POORI=['Mini Poori','Palak Mini Poori','Beetroot Mini Poori','Methi Mini Poori','Ajwain Mini Poori','Masala Mini Poori','Pudina Mini Poori','Carrot Mini Poori'];
+const AZ_KURMA=['Vegetable Kurma','White Vegetable Kurma','Chettinad Vegetable Kurma','Green Peas Kurma','Potato Peas Kurma','Mushroom Kurma','Navarathna Kurma','Paneer Vegetable Kurma'];
+const AZ_SAMBAR=['Onion Sambar','Brinjal Sambar','Drumstick Sambar','Arachuvitta Sambar','Mixed Vegetable Sambar','Pumpkin Sambar','Radish Sambar','Small Onion Sambar'];
+const AZ_RASAM=['Tomato Rasam','Pepper Cumin Rasam','Mysore Rasam','Lemon Rasam','Pineapple Rasam','Garlic Rasam','Kollu Rasam','Paruppu Rasam'];
+const AZ_MORK=['Vendakkai Mor Kuzhambu','Poosanikai Mor Kuzhambu','Vadai Mor Kuzhambu','Chow Chow Mor Kuzhambu','Paruppu Urundai Mor Kuzhambu','Mango Mor Kuzhambu','Ash Gourd Mor Kuzhambu','Vegetable Mor Kuzhambu'];
+const AZ_KOOTU=['Chow Chow Kootu','Snake Gourd Kootu','Cabbage Kootu','Mixed Vegetable Kootu','Keerai Kootu','Pumpkin Kootu','Beans Paruppu Usili','Avial'];
+const AZ_PORIYAL=['Beans Carrot Poriyal','Cabbage Peas Poriyal','Beetroot Poriyal','Keerai Poriyal','Vazhakkai Podimas','Baby Potato Roast Masala','Senai Roast','Cauliflower Pepper Fry'];
+const AZ_VAR_RICE=['Lemon Rice','Tamarind Rice','Coconut Rice','Mint Rice','Tomato Rice','Coriander Rice','Mango Rice','Vegetable Pulao'];
+const AZ_MIX_RICE=['Sambar Sadam','Bisi Bele Bath','Kadamba Sadam','Vegetable Sambar Rice','Kovil Puliyodarai','Coconut Sevai','Lemon Sevai','Tomato Bath'];
+const AZ_CURD=['Curd Rice','Pomegranate Curd Rice','Mango Ginger Curd Rice','Carrot Curd Rice','Cucumber Curd Rice'];
+const AZ_START=['Medhu Vada','Mini Masala Vada','Keerai Vada','Paneer 65','Gobi 65','Baby Corn Pepper Fry','Vegetable Cutlet','Mini Samosa'];
+const AZ_SWEET=['Mysore Pak','Badam Halwa','Carrot Halwa','Pineapple Kesari','Kasi Halwa','Jangiri','Dry Fruit Laddu','Mini Gulab Jamun'];
+const AZ_PAY=['Paal Payasam','Semiya Payasam','Paruppu Payasam','Paal Ada Pradhaman','Elaneer Payasam','Carrot Kheer','Badam Kheer','Moong Dal Payasam'];
+const AZ_ACC=['Thengai Thuvaiyal','Kothamalli Thuvaiyal','Paruppu Thuvaiyal','Gongura Pachadi','Dosakaya Pachadi','Inji Puli','Cucumber Kosambari','Pineapple Pachadi'];
+const AZ_NORTH=['Paneer Butter Masala','Kadai Paneer','Dal Tadka','Dal Makhani','Chana Masala','Veg Jalfrezi','Malai Kofta','Aloo Gobi'];
+const AZ_BREAD=['Butter Naan','Garlic Naan','Tandoori Roti','Phulka','Mini Bhatura','Lachha Paratha','Kulcha','Poori'];
+const AZ_CHINESE=['Gobi Manchurian','Chilli Paneer','Veg Spring Roll','Crispy Corn','Hakka Noodles','Veg Fried Rice','Schezwan Noodles','Chilli Garlic Fried Rice'];
+function azPick(a,i,off=0){return a[(i+off)%a.length];}
+function makeAZMenus(letter,title,idx){
+ const cat=`Catering ${letter} – ${title}`, out=[];
+ for(let i=0;i<20;i++){
+  let items=[];
+  const southCore=[azPick(AZ_START,i,idx),azPick(AZ_POORI,i,idx),azPick(AZ_KURMA,i,idx+1),azPick(AZ_VAR_RICE,i,idx),azPick(AZ_SAMBAR,i,idx),azPick(AZ_RASAM,i,idx+2),azPick(AZ_MORK,i,idx+3),azPick(AZ_KOOTU,i,idx),azPick(AZ_PORIYAL,i,idx+2),azPick(AZ_MIX_RICE,i,idx+1),azPick(AZ_CURD,i,idx),azPick(AZ_ACC,i,idx),azPick(AZ_SWEET,i,idx),azPick(AZ_PAY,i,idx+2),'Steamed Rice','Appalam','Pickle'];
+  if(['W'].includes(letter)) items=[azPick(AZ_START,i),azPick(AZ_NORTH,i),azPick(AZ_NORTH,i,3),azPick(AZ_BREAD,i),azPick(AZ_VAR_RICE,i),'Jeera Rice','Dal Tadka','Boondi Raita','Green Salad','Papad','Pickle',azPick(AZ_SWEET,i),azPick(AZ_PAY,i),'Masala Chaas','Welcome Drink'];
+  else if(['X'].includes(letter)) items=[azPick(AZ_START,i),azPick(AZ_CHINESE,i),azPick(AZ_CHINESE,i,2),azPick(AZ_CHINESE,i,4),'Veg Fried Rice','Hakka Noodles','Chilli Paneer','Gobi Manchurian','Veg Manchow Soup','Spring Roll','Cucumber Salad','Chilli Garlic Sauce',azPick(AZ_SWEET,i),azPick(AZ_PAY,i),'Welcome Drink'];
+  else if(['M','L','N','T','Y','Z'].includes(letter)) items=[...southCore,azPick(AZ_NORTH,i,idx),azPick(AZ_BREAD,i,idx),azPick(AZ_CHINESE,i,idx),'Veg Biryani','Onion Cucumber Raita','Welcome Drink'];
+  else if(letter==='H') items=['Banana Chips','Sharkara Varatti','Inji Puli',azPick(['Beetroot Pachadi','Pineapple Pachadi','Vellarikka Kichadi','Vendakka Kichadi'],i),azPick(['Olan','Kalan','Erissery','Avial'],i),azPick(['Beans Thoran','Cabbage Carrot Thoran','Beetroot Thoran'],i),azPick(['Kerala Sambar','Varutharacha Sambar'],i),'Kerala Rasam','Moru Curry','Matta Rice','Parippu','Ghee','Pappadam','Mango Pickle',azPick(['Paal Ada Pradhaman','Palada Payasam','Parippu Pradhaman'],i),azPick(AZ_SWEET,i),'Sambharam'];
+  else if(letter==='G') items=[azPick(AZ_START,i),'Gongura Pachadi',azPick(['Dosakaya Pachadi','Beerakaya Pachadi','Vankaya Pachadi','Tomato Pachadi'],i),azPick(['Gutti Vankaya Kura','Dondakaya Vepudu','Bendakaya Fry','Aratikaya Vepudu'],i),'Pappu',azPick(['Andhra Sambar','Mukkala Pulusu'],i),'Tomato Charu',azPick(AZ_VAR_RICE,i),azPick(AZ_MIX_RICE,i),azPick(AZ_CURD,i),'Steamed Rice','Appadam','Avakaya',azPick(AZ_SWEET,i),azPick(AZ_PAY,i),azPick(AZ_POORI,i),azPick(AZ_KURMA,i)];
+  else items=southCore;
+  // Premium collections vary naturally between 18 and 22 dishes; add useful extras without duplicate dishes.
+  const extras=['Banana Chips','Mor Milagai','Vadu Mango','Buttermilk','Fruit Salad','Ice Cream','Sweet Beeda','Filter Coffee','Welcome Drink'];
+  const target=18+((i+idx)%5); // 18–22 courses
+  let e=0; while(items.length<target){let v=extras[(i+e+idx)%extras.length];if(!items.includes(v))items.push(v);e++;if(e>30)break;}
+  items=[...new Set(items)].slice(0,target);
+  out.push({cat,name:`Catering ${letter} – Menu ${String(i+1).padStart(2,'0')} • ${items.length} Course`,items});
+ }
+ return out;
+}
+const HAB_CATERING_AZ=HAB_CATERING_AZ_DEFS.flatMap((d,idx)=>makeAZMenus(d[0],d[1],idx));
+
 const HAB_MENU_LIBRARY=[
- {cat:"South Indian Breakfast",name:"Classic Breakfast 01",items:[
-  ["Idli",2.5,"Pieces"],["Medhu Vada",1,"Pieces"],["Ven Pongal",0.18,"kg"],["Kesari",0.09,"kg"],["Sambar",0.18,"L"],["Coconut Chutney",0.07,"kg"],["Tomato Chutney",0.05,"kg"],["Filter Coffee",0.15,"L"]]},
- {cat:"South Indian Breakfast",name:"Classic Breakfast 02",items:[
-  ["Idli",2,"Pieces"],["Rava Kichadi",0.18,"kg"],["Medhu Vada",1,"Pieces"],["Kesari",0.09,"kg"],["Sambar",0.18,"L"],["Coconut Chutney",0.07,"kg"],["Mint Chutney",0.04,"kg"],["Tea / Coffee",0.15,"L"]]},
- {cat:"South Indian Breakfast",name:"Poori Breakfast",items:[
-  ["Poori",3,"Pieces"],["Potato Masala",0.18,"kg"],["Idli",1.5,"Pieces"],["Medhu Vada",1,"Pieces"],["Kesari",0.09,"kg"],["Sambar",0.15,"L"],["Coconut Chutney",0.06,"kg"],["Coffee / Tea",0.15,"L"]]},
- {cat:"South Indian Breakfast",name:"Dosa & Pongal Breakfast",items:[
-  ["Dosa",2,"Pieces"],["Ven Pongal",0.16,"kg"],["Medhu Vada",1,"Pieces"],["Kesari",0.08,"kg"],["Sambar",0.18,"L"],["Coconut Chutney",0.07,"kg"],["Tomato Chutney",0.05,"kg"]]},
- {cat:"South Indian Breakfast",name:"Appam Breakfast",items:[
-  ["Appam",3,"Pieces"],["Vegetable Stew",0.20,"L"],["Medhu Vada",1,"Pieces"],["Kesari",0.08,"kg"],["Coconut Chutney",0.05,"kg"],["Coffee / Tea",0.15,"L"]]},
-
- {cat:"Andhra Meals",name:"Andhra Meals 01",items:[
-  ["White Rice",0.08,"kg"],["Mudda Pappu",0.06,"kg"],["Ghee",0.012,"kg"],["Andhra Sambar",0.16,"L"],["Rasam",0.12,"L"],["Vegetable Koora",0.10,"kg"],["Vepudu",0.09,"kg"],["Pulusu",0.10,"L"],["Pachadi",0.035,"kg"],["Pickle",0.015,"kg"],["Curd",0.10,"kg"],["Papad",1,"Pieces"],["Sweet",1,"Pieces"],["Buttermilk",0.12,"L"],["Banana",1,"Pieces"]]},
- {cat:"Andhra Meals",name:"Andhra Meals 02",items:[
-  ["White Rice",0.08,"kg"],["Tomato Pappu",0.06,"kg"],["Ghee",0.012,"kg"],["Drumstick Sambar",0.16,"L"],["Pepper Rasam",0.12,"L"],["Beans Koora",0.10,"kg"],["Potato Vepudu",0.09,"kg"],["Majjiga Pulusu",0.10,"L"],["Gongura Pachadi",0.03,"kg"],["Pickle",0.015,"kg"],["Curd",0.10,"kg"],["Papad",1,"Pieces"],["Payasam",0.10,"L"],["Buttermilk",0.12,"L"],["Banana",1,"Pieces"]]},
-
- {cat:"Kerala Meals / Sadhya",name:"Kerala Sadhya 01",items:[
-  ["Matta Rice",0.09,"kg"],["Parippu",0.055,"kg"],["Ghee",0.012,"kg"],["Sambar",0.16,"L"],["Rasam",0.12,"L"],["Avial",0.09,"kg"],["Olan",0.08,"kg"],["Kalan",0.07,"kg"],["Erissery",0.08,"kg"],["Thoran",0.08,"kg"],["Inji Puli",0.025,"kg"],["Pickle",0.015,"kg"],["Pappadam",1,"Pieces"],["Moru",0.12,"L"],["Payasam",0.11,"L"]]},
- {cat:"Kerala Meals / Sadhya",name:"Kerala Sadhya 02",items:[
-  ["Matta Rice",0.09,"kg"],["Parippu",0.055,"kg"],["Ghee",0.012,"kg"],["Varutharacha Sambar",0.16,"L"],["Rasam",0.12,"L"],["Avial",0.09,"kg"],["Pineapple Pulissery",0.09,"kg"],["Cabbage Thoran",0.08,"kg"],["Erissery",0.08,"kg"],["Olan",0.08,"kg"],["Inji Puli",0.025,"kg"],["Pappadam",1,"Pieces"],["Moru",0.12,"L"],["Paal Ada",0.11,"L"],["Banana Chips",0.025,"kg"]]},
-
- {cat:"Tamil Wedding Feast",name:"Kalyana Virundhu 01",items:[
-  ["White Rice",0.08,"kg"],["Paruppu",0.05,"kg"],["Ghee",0.012,"kg"],["Arachuvitta Sambar",0.16,"L"],["Rasam",0.12,"L"],["Kootu",0.09,"kg"],["Poriyal",0.08,"kg"],["Avial",0.08,"kg"],["Vatha Kuzhambu",0.07,"L"],["Mor Kuzhambu",0.09,"L"],["Kosumalli",0.06,"kg"],["Pickle",0.015,"kg"],["Appalam",1,"Pieces"],["Payasam",0.11,"L"],["Sweet",1,"Pieces"]]},
- {cat:"Tamil Wedding Feast",name:"Kalyana Virundhu 02",items:[
-  ["White Rice",0.08,"kg"],["Paruppu",0.05,"kg"],["Ghee",0.012,"kg"],["Kadamba Sambar",0.16,"L"],["Jeera Rasam",0.12,"L"],["Chow Chow Kootu",0.09,"kg"],["Beans Poriyal",0.08,"kg"],["Potato Roast",0.09,"kg"],["Kara Kuzhambu",0.07,"L"],["Mor Kuzhambu",0.09,"L"],["Sundal Salad",0.06,"kg"],["Pickle",0.015,"kg"],["Appalam",1,"Pieces"],["Semiya Payasam",0.11,"L"],["Mysore Pak",1,"Pieces"]]},
-
- {cat:"Chettinad Food Festival",name:"Chettinad Veg Festival 01",items:[
-  ["Seeraga Samba Rice",0.08,"kg"],["Chettinad Vegetable Kurma",0.12,"kg"],["Kara Kuzhambu",0.10,"L"],["Milagu Rasam",0.12,"L"],["Keerai Kootu",0.09,"kg"],["Vazhakkai Roast",0.09,"kg"],["Mushroom Pepper Fry",0.09,"kg"],["Kuzhi Paniyaram",2,"Pieces"],["Coconut Chutney",0.05,"kg"],["Curd Rice",0.10,"kg"],["Appalam",1,"Pieces"],["Pickle",0.015,"kg"],["Sweet",1,"Pieces"],["Payasam",0.10,"L"],["Buttermilk",0.12,"L"]]},
-
- {cat:"North Indian Buffet",name:"North Indian Buffet 01",items:[
-  ["Jeera Rice",0.075,"kg"],["Vegetable Pulao",0.075,"kg"],["Dal Tadka",0.14,"L"],["Paneer Butter Masala",0.12,"kg"],["Chana Masala",0.10,"kg"],["Aloo Gobi",0.09,"kg"],["Naan / Roti",2.5,"Pieces"],["Raita",0.08,"kg"],["Green Salad",0.06,"kg"],["Pickle",0.015,"kg"],["Papad",1,"Pieces"],["Gulab Jamun",1,"Pieces"],["Kheer",0.10,"L"]]},
-
- {cat:"Mixed Indian & Indo-Chinese Buffet",name:"Mixed Buffet 01",items:[
-  ["Vegetable Fried Rice",0.08,"kg"],["Hakka Noodles",0.08,"kg"],["Gobi Manchurian",0.10,"kg"],["Chilli Paneer",0.10,"kg"],["Vegetable Spring Roll",1.5,"Pieces"],["Jeera Rice",0.06,"kg"],["Dal Tadka",0.12,"L"],["Paneer Curry",0.10,"kg"],["Naan",2,"Pieces"],["Raita",0.07,"kg"],["Salad",0.05,"kg"],["Gulab Jamun",1,"Pieces"],["Ice Cream",1,"Portion"]]}
+ ...make25Sets("South Indian Breakfast","South Indian Breakfast",SOUTH_BREAKFAST_POOLS),
+ ...make25Sets("Andhra Manchi Bhojanam","Andhra Manchi Bhojanam",ANDHRA_POOLS),
+ ...make25Sets("Kerala Meals / Sadhya","Kerala Sadhya",KERALA_POOLS),
+ ...make25Sets("Chettinad Virundhu","Chettinad Saiva Virundhu",CHETTINAD_POOLS),
+ ...make25Sets("Karnataka Oota","Karnataka Oota",KARNATAKA_POOLS),
+ ...make25Sets("Tamil Nadu – Arusuvai Virundhu","Arusuvai Tamil Virundhu",TAMIL_POOLS),
+ ...make25Sets("North Indian Buffet","North Indian Vegetarian Buffet",NORTH_POOLS),
+ ...make25Sets("Mixed Indian & Indo-Chinese Buffet","Grand Indian & Indo-Chinese Buffet",MIXED_POOLS),
+ ...HAB_CATERING_AZ
 ];
 
 let mlWorking=[];
@@ -1137,30 +1522,60 @@ function currentMenuList(){
  const cat=$("mlCategory").value;
  return [...HAB_MENU_LIBRARY,...mlCustomMenus()].filter(x=>x.cat===cat);
 }
+function recipeFor(item){
+ return HAB_RECIPE_GUIDE[item]||{yield:10,unit:"kg",ing:[[item+" base ingredients",10,"kg"]]};
+}
 function loadMenuTemplate(){
  const menus=currentMenuList(),m=menus[+$("mlTemplate").value||0];
  if(!m){mlWorking=[];renderMLRows();return;}
- mlWorking=(m.items||[]).map(x=>({item:x[0]||x.item,perPax:+(x[1]??x.perPax)||0,unit:x[2]||x.unit||"kg",qty:0}));
+ const raw=m.items||[];
+ mlWorking=raw.map(x=>{
+   if(Array.isArray(x)){
+     const item=x[0],r=recipeFor(item);
+     return {item,baseYield:+(x[1]||r.yield||10),unit:x[2]||r.unit||"kg",qty:0,ingredients:(r.ing||[]).map(a=>[a[0],a[1],a[2]])};
+   }
+   const r=recipeFor(x);
+   return {item:x,baseYield:+r.yield||10,unit:r.unit||"kg",qty:0,ingredients:(r.ing||[]).map(a=>[a[0],a[1],a[2]])};
+ });
  $("mlTitle").textContent=m.name;
  calcProduction();
 }
 function calcProduction(){
- const pax=Math.max(1,+$("mlPax").value||1),buf=Math.max(0,+$("mlBuffer").value||0);
- mlWorking.forEach(x=>x.qty=x.perPax*pax*(1+buf/100));
+ const pax=Math.max(1,+$("mlPax").value||1),buf=Math.max(0,+$("mlBuffer").value||0),factor=(pax/100)*(1+buf/100);
+ mlWorking.forEach(x=>{
+   x.qty=(+x.baseYield||0)*factor;
+   x.scaledIngredients=(x.ingredients||[]).map(a=>({name:a[0],qty:(+a[1]||0)*factor,unit:a[2]}));
+ });
  renderMLRows();
- $("mlInfo").textContent=`${pax} PAX • ${buf}% buffer • all quantities can be edited`;
+ $("mlInfo").textContent=`${pax} PAX • ${buf}% buffer • dish production and ingredient quantities are editable`;
 }
 function niceQty(q,unit){
  if(unit==="Pieces"||unit==="Portion"||unit==="Portions")return Math.ceil(q);
  return Math.round(q*100)/100;
+}
+function ingredientText(x){
+ return (x.scaledIngredients||[]).map(a=>`${a.name}: ${niceQty(a.qty,a.unit)} ${a.unit}`).join(" • ");
+}
+function editDishIngredients(n){
+ const x=mlWorking[n];if(!x)return;
+ const current=(x.scaledIngredients||[]).map(a=>`${a.name}=${niceQty(a.qty,a.unit)} ${a.unit}`).join("\n");
+ const edited=prompt("Edit ingredient guide. One line each: Ingredient=Qty Unit",current);
+ if(edited===null)return;
+ const parsed=edited.split(/\n+/).map(line=>{
+   const m=line.match(/^\s*(.*?)\s*=\s*([\d.]+)\s*(.*)\s*$/);
+   return m?{name:m[1],qty:+m[2]||0,unit:m[3]||"kg"}:null;
+ }).filter(Boolean);
+ if(parsed.length)x.scaledIngredients=parsed;
+ renderMLRows();
 }
 function renderMLRows(){
  $("mlRows").innerHTML=mlWorking.length?mlWorking.map((x,n)=>`<tr>
   <td>${n+1}</td><td><b>${esc(x.item)}</b></td>
   <td><input type="number" min="0" step="0.01" value="${niceQty(x.qty,x.unit)}" onchange="mlWorking[${n}].qty=+this.value||0"></td>
   <td><select onchange="mlWorking[${n}].unit=this.value"><option ${x.unit==="kg"?"selected":""}>kg</option><option ${x.unit==="L"?"selected":""}>L</option><option ${x.unit==="Pieces"?"selected":""}>Pieces</option><option ${x.unit==="Portion"?"selected":""}>Portion</option><option ${x.unit==="Tray"?"selected":""}>Tray</option><option ${x.unit==="Container"?"selected":""}>Container</option></select></td>
+  <td style="min-width:320px"><span class="ingredient-summary">${esc(ingredientText(x))}</span><br><button class="btn soft no-print" onclick="editDishIngredients(${n})">Edit Ingredients</button></td>
   <td class="no-print"><button class="btn red" onclick="mlWorking.splice(${n},1);renderMLRows()">Remove</button></td>
- </tr>`).join(""):'<tr><td colspan="5">No menu items.</td></tr>';
+ </tr>`).join(""):'<tr><td colspan="6">No menu items.</td></tr>';
 }
 function newMenuTemplate(){
  const name=prompt("New menu name:");if(!name)return;
@@ -1173,8 +1588,7 @@ function saveCurrentMenuAsCustom(){
  const name=prompt("Save menu as:",$("mlTitle").textContent+" - My Standard");if(!name)return;
  const cat=$("mlCategory").value||"My Menus";
  db.menuTemplates=Array.isArray(db.menuTemplates)?db.menuTemplates:[];
- const pax=Math.max(1,+$("mlPax").value||1),buf=Math.max(0,+$("mlBuffer").value||0),factor=pax*(1+buf/100);
- db.menuTemplates.push({cat,name,items:mlWorking.map(x=>[x.item,factor?x.qty/factor:0,x.unit])});
+ db.menuTemplates.push({cat,name,items:mlWorking.map(x=>[x.item,x.baseYield,x.unit])});
  save();initMenuLibrary();alert("Saved as your own editable menu standard.");
 }
 function sendMenuToCatering(){
@@ -1182,18 +1596,29 @@ function sendMenuToCatering(){
  page("catering",document.querySelector(".topnav button[onclick*=catering]"));
  setTimeout(()=>{
    if($("catGuests"))$("catGuests").value=$("mlPax").value;
-   // Replace catering lines with selected menu names, leaving price/quantity editable.
    if(typeof catLines!=="undefined"){
      catLines=mlWorking.map(x=>({item:x.item,unit:x.unit||"Pieces",price:0,qty:1}));
      renderCatLines();
+   }else if($("catRows")){
+     $("catRows").innerHTML="";
+     mlWorking.forEach(x=>addCateringRow({item:x.item,unit:x.unit||"Pieces",price:0,qty:1}));
    }
-   alert("Menu loaded into Catering Order. Please review quantity/unit and enter your selling prices.");
+   alert("Menu loaded into Catering Order. Review quantities/units and enter selling prices.");
  },80);
 }
 function calcQuote(){
- const sub=+$("mlSubtotal").value||0,taxPct=+$("mlTax").value||0,disc=+$("mlDiscount").value||0,service=+$("mlService").value||0;
- const tax=sub*taxPct/100,grand=Math.max(0,sub+tax+service-disc);
- $("mlQSub").textContent=money(sub);$("mlQTax").textContent=money(tax);$("mlQGrand").textContent=money(grand);
+ const sub=+$("mlSubtotal").value||0,
+       taxPct=+$("mlTax").value||0,
+       disc=+$("mlDiscount").value||0,
+       service=+$("mlService").value||0;
+ const tax=sub*taxPct/100;
+ const grand=Math.max(0,sub+tax+service-disc);
+
+ $("mlQSub").textContent=money(sub);
+ $("mlQTax").textContent=money(tax);
+ if($("mlQDiscount"))$("mlQDiscount").textContent="-"+money(disc);
+ if($("mlQService"))$("mlQService").textContent="+"+money(service);
+ $("mlQGrand").textContent=money(grand);
 }
 
 let editVendorOrderId=null;

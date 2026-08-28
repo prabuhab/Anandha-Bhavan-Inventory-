@@ -599,6 +599,7 @@ table tbody tr:hover{
   <div class="toolbar" style="align-items:end">
    <button id="stockCurrentBtn" class="btn green" onclick="setStockView('current')">📌 Current Stock</button>
    <button id="stockHistoryBtn" class="btn soft" onclick="setStockView('history')">📚 Full History</button>
+   <button class="btn orange" onclick="importAllPreviousDetails()">♻️ Import All Previous Details</button>
    <div class="field" style="min-width:220px;flex:1"><label>Search</label><input id="stockSearch" placeholder="Item or supplier" oninput="renderStock()"></div>
    <div class="field" id="stockFreqWrap" style="display:none"><label>Frequency</label><select id="stockFreq" onchange="renderStock()"><option>All</option><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div>
   </div>
@@ -634,7 +635,7 @@ table tbody tr:hover{
 </section>
 
 <section id="items" class="page">
- <div class="titlebar"><div><h2>Master Inventory & Price Book</h2><p class="subtitle">Add, edit or remove inventory items and suppliers. Every new item is automatically created as an Initial Stock Entry dated 15 Aug 2026 at 23:00 and is immediately available everywhere.</p></div><div class="toolbar no-print"><button class="btn green" onclick="openItem()">+ Add New Item</button><button class="btn orange" onclick="openSupplier()">+ New Supplier</button><button class="btn soft" onclick="importPreviousInventory()">☁️ Import Previous Suppliers & Items</button><button class="btn blue" onclick="exportItems()">Export Price Book</button></div></div>
+ <div class="titlebar"><div><h2>Master Inventory & Price Book</h2><p class="subtitle">Add, edit or remove inventory items and suppliers. Every new item is automatically created as an Initial Stock Entry dated 15 Aug 2026 at 23:00 and is immediately available everywhere.</p></div><div class="toolbar no-print"><button class="btn green" onclick="openItem()">+ Add New Item</button><button class="btn orange" onclick="openSupplier()">+ New Supplier</button><button class="btn orange" onclick="importAllPreviousDetails()">♻️ Import All Previous Details</button><button class="btn soft" onclick="importPreviousInventory()">☁️ Suppliers & Items Only</button><button class="btn blue" onclick="exportItems()">Export Price Book</button></div></div>
  <div class="grid2 no-print" style="margin-bottom:12px">
   <div class="card"><h3>Inventory Search & Filters</h3><div class="toolbar" style="margin-bottom:0"><div class="field"><label>Search</label><input id="itemSearch" placeholder="Search all inventory items" oninput="renderItems()"></div><div class="field"><label>Supplier</label><select id="itemSupplier" onchange="renderItems()"><option>All</option></select></div><div class="field"><label>Category</label><select id="itemCategory" onchange="renderItems()"><option>All</option></select></div><button class="btn soft" onclick="clearItemFilters()">Clear</button></div></div>
   <div class="card"><h3>Supplier Management</h3><div id="supplierList"></div></div>
@@ -651,9 +652,27 @@ table tbody tr:hover{
 </section>
 
 <section id="documents" class="page">
- <div class="titlebar"><div><h2>Bills, Signatures & Attachments</h2><p class="subtitle">Upload supplier bills, invoices, stock sheets or signatures. Files are stored locally in this browser.</p></div></div>
+ <div class="titlebar"><div><h2>Bills, Signatures & Attachments</h2><p class="subtitle">Upload supplier bills, invoices, stock sheets or signatures. Bill date is optional and can be used for From–To date searches.</p></div></div>
  <div class="grid2">
-  <div class="card"><h3>Upload Bill / Invoice / Stock Document</h3><div class="field"><label>Document</label><input type="file" id="docFile" accept="image/*,.pdf,.csv,.xlsx,.xls,.doc,.docx"></div><div class="field" style="margin-top:10px"><label>Description</label><input id="docDesc" placeholder="e.g. KTC invoice 15 Aug 2026"></div><button class="btn green" style="margin-top:10px" onclick="saveDocument()">Upload & Save</button><div id="docList" style="margin-top:10px"></div></div>
+  <div class="card">
+   <h3>Upload Bill / Invoice / Stock Document</h3>
+   <div class="field"><label>Document</label><input type="file" id="docFile" accept="image/*,.pdf,.csv,.xlsx,.xls,.doc,.docx"></div>
+   <div class="formgrid" style="margin-top:10px">
+    <div class="field"><label>Bill / Document Date (Optional)</label><input type="date" id="docDate"><small>Leave blank if the bill has no date.</small></div>
+    <div class="field"><label>Description</label><input id="docDesc" placeholder="e.g. KTC invoice / delivery note"></div>
+   </div>
+   <button class="btn green" style="margin-top:10px" onclick="saveDocument()">Upload & Save</button>
+   <div class="card no-print" style="margin-top:14px;padding:12px;background:#f8fcf5">
+    <div class="toolbar" style="align-items:end">
+     <div class="field"><label>From Date</label><input type="date" id="docFrom" onchange="renderDocs()"></div>
+     <div class="field"><label>To Date</label><input type="date" id="docTo" onchange="renderDocs()"></div>
+     <button class="btn green" onclick="renderDocs()">🔎 Find Bills</button>
+     <button class="btn soft" onclick="clearDocFilters()">Clear</button>
+    </div>
+    <small>Only dated bills are included when a From/To filter is used. Undated bills remain available when filters are cleared.</small>
+   </div>
+   <div id="docList" style="margin-top:10px"></div>
+  </div>
   <div class="card"><h3>Chef / Receiver Signature</h3><p class="subtitle">Choose who is signing, sign using finger or mouse, then save with date/time.</p><div class="field" style="margin-bottom:10px"><label>Sign As</label><select id="sigRole"><option>Chef</option><option>Receiver</option></select></div><div class="notice" style="margin:10px 0 8px"><b>Sign inside the box below with your finger.</b></div><canvas class="signature" id="sig"></canvas><div class="actions"><button class="btn soft" onclick="clearSig()">Clear</button><button class="btn green" onclick="saveSignature()">Save Signature</button></div><div id="sigList"></div></div>
  </div>
 </section>
@@ -669,7 +688,7 @@ table tbody tr:hover{
  <div class="grid2">
   <div class="card data-entry"><h3>Restaurant Details</h3><div class="formgrid"><div class="field"><label>Name</label><input id="setName" value="HOTEL ANANDHA BHAVAN"></div><div class="field"><label>Address</label><input id="setAddress" value="545 High Road, Wembley, London HA0 2DJ"></div><div class="field"><label>Default Frequency</label><select id="setFreq"><option>Daily</option><option>Weekly</option><option>Monthly</option><option>Yearly</option></select></div><div class="field"><label>History</label><select id="setYears"><option>7 Years</option></select></div></div><div class="actions"><button class="btn green" onclick="saveSettings()">Save</button></div></div>
   <div class="card data-entry"><h3>🔐 Private Cloud Sync</h3><p class="subtitle">Use one private account so the same master inventory is available on your laptop, PC, phone and tablet. Changes are synced to the cloud and protected by your account.</p><div class="formgrid"><div class="field"><label>Supabase Project URL</label><input id="cloudUrl" placeholder="https://your-project.supabase.co"></div><div class="field"><label>Supabase Anon Key</label><input id="cloudKey" type="password" placeholder="eyJ..."></div><div class="field"><label>Your Email</label><input id="cloudEmail" type="email" placeholder="you@example.com"></div><div class="field"><label>Password</label><input id="cloudPassword" type="password" placeholder="Your private password"></div></div><div class="actions"><button class="btn green" onclick="cloudSignIn()">☁️ Sign In & Sync</button><button class="btn soft" onclick="cloudSignUp()">Create Private Account</button><button class="btn red" onclick="cloudSignOut()">Sign Out</button></div><div id="cloudStatus" class="notice" style="margin-top:10px">Cloud is not configured. Local data remains on this device until cloud setup is completed.</div></div>
-  <div class="card"><h3>Backup & Restore</h3><div class="toolbar"><button class="btn blue" onclick="backup()">Download Backup</button><button class="btn green" onclick="exportPortableApp()">📦 Create Portable App With All Data</button><label class="btn soft" style="display:inline-block">Restore Backup<input type="file" id="restore" accept=".json" hidden onchange="restoreBackup(event)"></label><button class="btn red" onclick="resetAll()">Reset App Data</button></div><div class="notice"><b>Important:</b> This app normally stores data on the current device/browser. To move <b>all your data</b> to another phone, tablet, laptop, or to email/WhatsApp, use <b>Create Portable App With All Data</b>. The downloaded HTML contains a copy of your current inventory, stock entries, movements, suppliers, documents, signatures, feedback and settings. Open that portable HTML on the other device and your data will be imported automatically. Keep a separate JSON backup as an additional safety copy.</div></div>
+  <div class="card"><h3>Backup & Restore</h3><div class="toolbar"><button class="btn orange" onclick="importAllPreviousDetails()">♻️ Import All Previous Details</button><button class="btn blue" onclick="backup()">Download Backup</button><button class="btn green" onclick="exportPortableApp()">📦 Create Portable App With All Data</button><label class="btn soft" style="display:inline-block">Restore Backup<input type="file" id="restore" accept=".json" hidden onchange="restoreBackup(event)"></label><button class="btn red" onclick="resetAll()">Reset App Data</button></div><div class="notice"><b>Important:</b> <b>Import All Previous Details</b> safely merges old Suppliers, Items, Stock Entries, Kitchen/Outside Movements, Sales, Bills/Documents, Signatures, Feedback, Catering Orders and Vendor Orders without deleting the current data. This app normally stores data on the current device/browser. To move <b>all your data</b> to another phone, tablet, laptop, or to email/WhatsApp, use <b>Create Portable App With All Data</b>. The downloaded HTML contains a copy of your current inventory, stock entries, movements, suppliers, documents, signatures, feedback and settings. Open that portable HTML on the other device and your data will be imported automatically. Keep a separate JSON backup as an additional safety copy.</div></div>
   
  </div>
 </section>
@@ -679,7 +698,7 @@ table tbody tr:hover{
 <section id="menulibrary" class="page">
  <div class="titlebar">
   <div><h2>Menu Library & Production Planner</h2>
-   <p class="subtitle">Choose from the regional menu library plus Catering A–Z premium collections. A–Z includes 20 attractive menu combinations per collection with 18–22 course options, while regional sets remain unchanged. Enter PAX to calculate production quantities, edit them, and send the menu to Catering Order.</p>
+   <p class="subtitle">Choose from regional menus, Catering A–Z, India Grand National, International Vegetarian, Signature Wedding and Diwali Special collections. Menus are built as attractive multi-course combinations for practical catering. Enter PAX to calculate production quantities, edit them, and send the menu to Catering Order.</p>
   </div>
   <div class="toolbar no-print">
    <button class="btn green" onclick="newMenuTemplate()">+ New Custom Menu</button>
@@ -993,7 +1012,7 @@ function cloudCfg(){return {url:(localStorage.getItem('HAB_SUPABASE_URL')||'http
 function setCloudStatus(msg){const el=$("cloudStatus");if(el)el.innerText=msg;}
 function initCloudClient(){const c=cloudCfg(); if(!c.url||!c.key||!window.supabase){cloudClient=null;return false;} try{cloudClient=window.supabase.createClient(c.url,c.key); return true;}catch(e){cloudClient=null;return false;}}
 async function cloudSave(){if(!cloudClient||!cloudSession||cloudSyncing||PORTABLE_MODE)return;cloudSyncing=true;try{const uid=cloudSession.user.id;const {data:row,error:getErr}=await cloudClient.from('app_state').select('revision,updated_at').eq('user_id',uid).maybeSingle();if(getErr)throw getErr;const serverRev=Number(row?.revision||0);if(row && serverRev!==Number(cloudRevision)){setCloudStatus('⚠️ Cloud changed on another device. Local data was NOT overwritten. Please reload/sync before making more edits.');cloudSyncing=false;return;}const nextRev=serverRev+1;const payload={user_id:uid,revision:nextRev,data:db,updated_at:new Date().toISOString()};const {error}=await cloudClient.from('app_state').upsert(payload,{onConflict:'user_id'});if(error)throw error;cloudRevision=nextRev;cloudLastUpdated=payload.updated_at;setCloudStatus('☁️ Synced securely • '+new Date().toLocaleString('en-GB'));}catch(e){setCloudStatus('⚠️ Cloud sync error: '+e.message);}finally{cloudSyncing=false;}}
-async function cloudLoad(){if(!cloudClient||!cloudSession)return;try{const uid=cloudSession.user.id;const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();if(error)throw error;if(row?.data){db=row.data;cloudRevision=Number(row.revision||0);cloudLastUpdated=row.updated_at;ensureMasterData();
+async function cloudLoad(){if(!cloudClient||!cloudSession)return;try{const uid=cloudSession.user.id;const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();if(error)throw error;if(row?.data){db=habMergeDb(db||makeDefaultDb(),row.data);cloudRevision=Number(row.revision||0);cloudLastUpdated=row.updated_at;ensureMasterData();
  if(localStorage.getItem("HAB_KITCHEN_SYNC_V1")!=="done"){
    setTimeout(()=>{
      try{
@@ -1489,6 +1508,70 @@ function makeAZMenus(letter,title,idx){
 }
 const HAB_CATERING_AZ=HAB_CATERING_AZ_DEFS.flatMap((d,idx)=>makeAZMenus(d[0],d[1],idx));
 
+
+// Expanded premium catering collections: Indian national, international vegetarian, contemporary wedding and Diwali South Indian meals.
+const PREM_SOUPS=['Cream of Tomato Soup','Sweet Corn Vegetable Soup','Hot & Sour Vegetable Soup','Roasted Pumpkin Soup','Broccoli Almond Soup','Minestrone Soup','Tom Yum Vegetable Soup','Mushroom Cappuccino Soup'];
+const PREM_SALADS=['Greek Salad','Couscous Herb Salad','Russian Salad','Sprouted Moong Salad','Quinoa Pomegranate Salad','Kachumber Salad','Mexican Corn Bean Salad','Asian Sesame Salad'];
+const PREM_INT_START=['Bruschetta Trio','Falafel with Hummus','Vegetable Spring Roll','Crispy Corn Pepper Salt','Jalapeno Cheese Bites','Mini Veg Quesadilla','Stuffed Mushroom','Tempura Vegetables'];
+const PREM_INT_MAIN=['Penne Arrabbiata','Penne Alfredo','Vegetable Lasagne','Herb Roasted Vegetables','Thai Green Curry','Mexican Vegetable Enchilada','Mediterranean Vegetable Bake','Vegetable Stroganoff'];
+const PREM_INT_CARB=['Herb Butter Rice','Mexican Rice','Thai Jasmine Rice','Vegetable Fried Rice','Hakka Noodles','Garlic Parsley Potato','Vegetable Couscous','Saffron Pilaf'];
+const PREM_INT_BREAD=['Garlic Bread','Focaccia','Pita Bread','Soft Dinner Roll','Herb Flatbread','Cheese Garlic Bread'];
+const PREM_INT_DESS=['Tiramisu Cup','Chocolate Mousse','Baked Cheesecake','Fruit Trifle','Crème Caramel','Brownie with Ice Cream','Mango Panna Cotta','Fresh Fruit Tart'];
+const PREM_INDIAN_START=['Paneer Tikka','Hara Bhara Kebab','Dahi Ke Kebab','Tandoori Broccoli','Mini Kachori Chaat','Palak Patta Chaat','Corn Seekh Kebab','Vegetable Galouti'];
+const PREM_INDIAN_MAIN=['Paneer Lababdar','Kadai Paneer','Malai Kofta','Subz Diwani Handi','Methi Mutter Malai','Dum Aloo Banarasi','Bhindi Do Pyaza','Kaju Curry'];
+const PREM_INDIAN_DAL=['Dal Makhani','Dal Tadka','Dal Panchmel','Gujarati Dal','Dal Palak','Rajma Masala','Chana Masala','Kadhi Pakora'];
+const PREM_INDIAN_RICE=['Hyderabadi Veg Dum Biryani','Kashmiri Pulao','Jeera Rice','Peas Pulao','Subz Pulao','Mushroom Biryani','Awadhi Veg Biryani','Ghee Rice'];
+const PREM_INDIAN_BREAD=['Butter Naan','Garlic Naan','Tandoori Roti','Lachha Paratha','Missi Roti','Kulcha','Phulka','Mini Poori'];
+const PREM_INDIAN_DESS=['Jalebi with Rabri','Rasmalai','Gulab Jamun','Moong Dal Halwa','Badam Halwa','Malpua Rabri','Kulfi Falooda','Kesar Pista Phirni'];
+function premPick(a,i,o=0){return a[(i+o)%a.length];}
+function makeInternationalMenus(){
+ const cat='Premium International Vegetarian Catering',out=[];
+ for(let i=0;i<20;i++){
+  let items=['Welcome Mocktail',premPick(PREM_SOUPS,i),premPick(PREM_SALADS,i),premPick(PREM_INT_START,i),premPick(PREM_INT_START,i,3),premPick(PREM_INT_MAIN,i),premPick(PREM_INT_MAIN,i,3),premPick(PREM_INT_CARB,i),premPick(PREM_INT_BREAD,i),'Hummus & Dips Platter','Live Pasta Counter','Live Pizza / Flatbread Counter',premPick(PREM_INT_DESS,i),'Fresh Fruit Platter','Tea / Coffee'];
+  if(i%2===0)items.splice(9,0,'Thai Red Curry'); else items.splice(9,0,'Mexican Nachos & Salsa');
+  if(i%3===0)items.splice(5,0,'Mediterranean Mezze');
+  out.push({cat,name:`International Premium – Menu ${String(i+1).padStart(2,'0')} • ${items.length} Course`,items:[...new Set(items)]});
+ }
+ return out;
+}
+function makeIndiaNationalMenus(){
+ const cat='India Grand National Catering',out=[];
+ for(let i=0;i<20;i++){
+  let items=['Indian Welcome Drink',premPick(PREM_INDIAN_START,i),premPick(PREM_INDIAN_START,i,3),'South Indian Mini Tiffin Counter',premPick(PREM_INDIAN_MAIN,i),premPick(PREM_INDIAN_MAIN,i,3),premPick(PREM_INDIAN_DAL,i),premPick(PREM_INDIAN_RICE,i),premPick(PREM_INDIAN_BREAD,i),azPick(AZ_SAMBAR,i),azPick(AZ_RASAM,i,2),azPick(AZ_MORK,i,3),azPick(AZ_KOOTU,i),azPick(AZ_PORIYAL,i,2),azPick(AZ_VAR_RICE,i),azPick(AZ_CURD,i),azPick(AZ_ACC,i),'Appalam / Papad','Pickle',premPick(PREM_INDIAN_DESS,i),azPick(AZ_PAY,i,2),'Sweet Beeda'];
+  out.push({cat,name:`India Grand – Menu ${String(i+1).padStart(2,'0')} • ${items.length} Course`,items:[...new Set(items)]});
+ }
+ return out;
+}
+function makeSignatureWeddingMenus(){
+ const cat='HAB Indian + International Signature Wedding',out=[];
+ for(let i=0;i<20;i++){
+  let items=['Signature Welcome Mocktail',premPick(PREM_SOUPS,i),premPick(PREM_SALADS,i),premPick(PREM_INDIAN_START,i),premPick(PREM_INT_START,i,2),azPick(AZ_POORI,i),azPick(AZ_KURMA,i,2),premPick(PREM_INDIAN_MAIN,i),premPick(PREM_INDIAN_DAL,i),premPick(PREM_INDIAN_RICE,i),premPick(PREM_INDIAN_BREAD,i),azPick(AZ_SAMBAR,i),azPick(AZ_RASAM,i),azPick(AZ_MORK,i),azPick(AZ_KOOTU,i),azPick(AZ_PORIYAL,i),azPick(AZ_MIX_RICE,i),azPick(AZ_CURD,i),premPick(PREM_INT_MAIN,i),premPick(PREM_INT_CARB,i),premPick(PREM_INDIAN_DESS,i),premPick(PREM_INT_DESS,i),'Filter Coffee / Tea'];
+  out.push({cat,name:`Signature Wedding – Menu ${String(i+1).padStart(2,'0')} • ${items.length} Course`,items:[...new Set(items)]});
+ }
+ return out;
+}
+const DIWALI_THUV=['Thengai Thuvaiyal','Paruppu Thuvaiyal','Kothamalli Thuvaiyal','Karuveppilai Thuvaiyal','Peerkangai Thuvaiyal'];
+const DIWALI_MASALA=['Baby Potato Roast Masala','Senai Pepper Roast','Vazhakkai Kara Curry','Chettinad Potato Masala','Cauliflower Pepper Masala','Mochai Kara Masala','Brinjal Roast Masala','Kondakadalai Masala'];
+const DIWALI_VAR=['Lemon Rice','Puliyodarai','Coconut Rice','Mango Rice','Kothamalli Rice','Mint Rice','Tomato Rice','Ellu Sadam'];
+function makeDiwaliMenus(){
+ const cat='Diwali Special – South Indian Festive Meals',out=[];
+ for(let i=0;i<20;i++){
+  let items=[
+   azPick(['Jangiri','Mysore Pak','Badam Halwa','Kasi Halwa','Ashoka Halwa','Boondi Laddu','Dry Fruit Laddu','Pineapple Kesari'],i),
+   azPick(['Paal Payasam','Paruppu Payasam','Semiya Payasam','Moong Dal Payasam','Carrot Kheer','Elaneer Payasam','Paal Ada Pradhaman','Badam Kheer'],i,2),
+   azPick(['Medhu Vada','Paruppu Vada','Keerai Vada','Masala Vada'],i),
+   azPick(DIWALI_VAR,i),
+   'Steamed Rice','Paruppu & Ghee',azPick(AZ_SAMBAR,i),azPick(AZ_RASAM,i,2),azPick(AZ_MORK,i,3),
+   azPick(AZ_KOOTU,i),azPick(AZ_PORIYAL,i,2),azPick(DIWALI_MASALA,i),azPick(DIWALI_THUV,i),
+   azPick(AZ_CURD,i),'Appalam','Pickle','Mor Milagai','Buttermilk'
+  ];
+  if(i%2===0)items.splice(4,0,azPick(AZ_POORI,i),azPick(AZ_KURMA,i,1));
+  out.push({cat,name:`Diwali Festive Meals – Menu ${String(i+1).padStart(2,'0')} • ${items.length} Course`,items:[...new Set(items)]});
+ }
+ return out;
+}
+const HAB_PREMIUM_NEW_COLLECTIONS=[...makeInternationalMenus(),...makeIndiaNationalMenus(),...makeSignatureWeddingMenus(),...makeDiwaliMenus()];
+
 const HAB_MENU_LIBRARY=[
  ...make25Sets("South Indian Breakfast","South Indian Breakfast",SOUTH_BREAKFAST_POOLS),
  ...make25Sets("Andhra Manchi Bhojanam","Andhra Manchi Bhojanam",ANDHRA_POOLS),
@@ -1498,7 +1581,8 @@ const HAB_MENU_LIBRARY=[
  ...make25Sets("Tamil Nadu – Arusuvai Virundhu","Arusuvai Tamil Virundhu",TAMIL_POOLS),
  ...make25Sets("North Indian Buffet","North Indian Vegetarian Buffet",NORTH_POOLS),
  ...make25Sets("Mixed Indian & Indo-Chinese Buffet","Grand Indian & Indo-Chinese Buffet",MIXED_POOLS),
- ...HAB_CATERING_AZ
+ ...HAB_CATERING_AZ,
+ ...HAB_PREMIUM_NEW_COLLECTIONS
 ];
 
 let mlWorking=[];
@@ -1687,6 +1771,119 @@ function initCatering(){if(!$('catRows'))return;if(!$('catRows').children.length
 function page(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".topnav button").forEach(b=>b.classList.remove("active"));if(btn)btn.classList.add("active");refreshAll();if(id==="documents")setTimeout(initSig,80);if(id==="vendor")setTimeout(initVendor,40);if(id==="catering")setTimeout(initCatering,40);if(id==="menulibrary")setTimeout(initMenuLibrary,40);window.scrollTo({top:0,behavior:"smooth"});}
 function scrollTable(id,n){$(id).scrollBy({left:n,behavior:"smooth"});}
 function refreshAll(){renderStock();renderMovement();renderSales();renderItems();renderDashboard();renderReport();renderDocs();renderFeedback();populateSelects();if($("catOrderList"))renderCateringOrders();if($("vendorOrderList"))renderVendorOrders();}
+
+
+function habRecordScore(v){
+ if(v===null||v===undefined||v==='')return 0;
+ if(typeof v==='number')return v!==0?2:0;
+ if(typeof v==='boolean')return v?1:0;
+ if(Array.isArray(v))return v.length?2:0;
+ if(typeof v==='object')return Object.keys(v).length?2:0;
+ return String(v).trim()?2:0;
+}
+function habSmartRecordMerge(oldRec,newRec){
+ const out={...(oldRec||{})};
+ for(const [k,v] of Object.entries(newRec||{})){
+   if(habRecordScore(v)>0 || habRecordScore(out[k])===0)out[k]=v;
+ }
+ return out;
+}
+function habMergeArrayByKey(base,incoming,keyFn,smart=false){
+ const out=Array.isArray(base)?base.map(x=>(x&&typeof x==='object'?{...x}:x)):[];
+ const map=new Map();
+ out.forEach((x,i)=>map.set(keyFn(x,i),i));
+ (Array.isArray(incoming)?incoming:[]).forEach((x,i)=>{
+   const k=keyFn(x,i);
+   if(map.has(k)){
+     const pos=map.get(k);
+     if(smart && x && typeof x==='object')out[pos]=habSmartRecordMerge(out[pos],x);
+   }else{
+     map.set(k,out.length);out.push(x&&typeof x==='object'?{...x}:x);
+   }
+ });
+ return out;
+}
+function habMergeDb(base,incoming){
+ base=base&&typeof base==='object'?base:makeDefaultDb();
+ incoming=incoming&&typeof incoming==='object'?incoming:{};
+ const out={...base};
+ const itemKey=x=>String(x?.supplier||'').trim().toLowerCase()+'||'+String(x?.name||x?.item||'').trim().toLowerCase();
+ const rowKey=(x,i)=>String(x?.id||'')||[x?.date,x?.time,x?.supplier,x?.item,x?.type,x?.qty,i].join('||').toLowerCase();
+ const idKey=(x,i)=>String(x?.id||'')||[x?.date,x?.customer,x?.supplier,x?.reference,x?.name,i].join('||').toLowerCase();
+ out.items=habMergeArrayByKey(base.items,incoming.items,itemKey,true);
+ out.suppliers=[...new Set([...(base.suppliers||[]),...(incoming.suppliers||[]),...(out.items||[]).map(i=>i.supplier)].map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base',numeric:true}));
+ out.entries=habMergeArrayByKey(base.entries,incoming.entries,rowKey,true);
+ out.movements=habMergeArrayByKey(base.movements,incoming.movements,rowKey,true);
+ out.sales=habMergeArrayByKey(base.sales,incoming.sales,idKey,true);
+ out.docs=habMergeArrayByKey(base.docs,incoming.docs,idKey,true);
+ out.signatures=habMergeArrayByKey(base.signatures,incoming.signatures,idKey,true);
+ out.feedback=habMergeArrayByKey(base.feedback,incoming.feedback,idKey,true);
+ out.cateringOrders=habMergeArrayByKey(base.cateringOrders,incoming.cateringOrders,idKey,true);
+ out.vendorOrders=habMergeArrayByKey(base.vendorOrders,incoming.vendorOrders,idKey,true);
+ out.settings=habSmartRecordMerge(base.settings||{},incoming.settings||{});
+ // Preserve any future collections too.
+ for(const [k,v] of Object.entries(incoming)){
+   if(out[k]===undefined)out[k]=v;
+ }
+ return out;
+}
+function habFindLegacyLocalDatabases(){
+ const found=[];
+ try{
+   for(let i=0;i<localStorage.length;i++){
+     const key=localStorage.key(i);
+     if(!key || key===HAB_STORAGE_KEY || key===HAB_SECURE_KEY)continue;
+     if(!/HAB|ANANDHA|INVENTORY|STOCK/i.test(key))continue;
+     try{
+       const obj=JSON.parse(localStorage.getItem(key));
+       const data=obj?.data&&typeof obj.data==='object'?obj.data:obj;
+       if(data && typeof data==='object' && (Array.isArray(data.items)||Array.isArray(data.entries)||Array.isArray(data.suppliers)))found.push({key,data});
+     }catch(e){}
+   }
+ }catch(e){}
+ return found;
+}
+async function importAllPreviousDetails(){
+ try{
+   let merged=db||makeDefaultDb();
+   let sources=[];
+   // 1) Merge any legacy HAB data still present in this browser.
+   for(const x of habFindLegacyLocalDatabases()){
+     merged=habMergeDb(merged,x.data);sources.push('browser:'+x.key);
+   }
+   // 2) Merge the secure/IndexedDB vault when it contains plain HAB data.
+   try{
+     const vault=await idbGet(HAB_SECURE_KEY);
+     if(vault && typeof vault==='object' && (Array.isArray(vault.items)||Array.isArray(vault.entries))){merged=habMergeDb(merged,vault);sources.push('secure device vault');}
+   }catch(e){}
+   // 3) Merge current user's cloud master instead of replacing current data.
+   let client=null,session=null;
+   if(cloudClient&&cloudSession){client=cloudClient;session=cloudSession;}
+   else if(habAuthClient){
+     const ses=await habAuthClient.auth.getSession();
+     if(ses?.data?.session){session=ses.data.session;client=habAuthClient;}
+   }
+   if(client&&session){
+     const {data:row,error}=await client.from('app_state').select('data,revision,updated_at').eq('user_id',session.user.id).maybeSingle();
+     if(error)throw error;
+     if(row?.data){merged=habMergeDb(merged,row.data);sources.push('private cloud');cloudRevision=Number(row.revision||cloudRevision||0);cloudLastUpdated=row.updated_at||cloudLastUpdated;}
+   }
+   db=merged;ensureMasterData();
+   localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));
+   refreshAll();
+   await cloudSave();
+   const msg='Import complete. Nothing was deleted.\n\n'+
+     'Suppliers: '+(db.suppliers||[]).length+'\n'+
+     'Items: '+(db.items||[]).length+'\n'+
+     'Stock entries: '+(db.entries||[]).length+'\n'+
+     'Movements: '+(db.movements||[]).length+'\n'+
+     'Bills / documents: '+(db.docs||[]).length+'\n'+
+     'Catering orders: '+(db.cateringOrders||[]).length+'\n'+
+     'Vendor orders: '+(db.vendorOrders||[]).length+'\n\n'+
+     (sources.length?'Merged from: '+sources.join(', '):'No extra previous source was found; current data was kept safely.');
+   alert(msg);
+ }catch(e){alert('Import All Previous Details could not complete: '+(e.message||e));}
+}
 
 async function importPreviousInventory(){
  try{
@@ -2214,9 +2411,27 @@ function renderReport(){
 function isoWeek(d){let date=new Date(d+"T00:00:00");let day=(date.getDay()+6)%7;date.setDate(date.getDate()-day+3);let first=new Date(date.getFullYear(),0,4);let week=1+Math.round(((date-first)/86400000-3+(first.getDay()+6)%7)/7);return date.getFullYear()+"-W"+String(week).padStart(2,"0");}
 function saveDocument(){
  let f=$("docFile").files[0];if(!f)return alert("Choose a file first.");if(f.size>3.5*1024*1024)return alert("For this standalone browser app, please keep each file under 3.5 MB.");
- let r=new FileReader();r.onload=()=>{db.docs.push({id:Date.now(),name:f.name,type:f.type,size:f.size,data:r.result,desc:$("docDesc").value,date:TODAY});save();$("docFile").value="";$("docDesc").value="";renderDocs();};r.readAsDataURL(f);
+ let billDate=$("docDate")?.value||"";
+ let r=new FileReader();r.onload=()=>{db.docs.push({id:Date.now(),name:f.name,type:f.type,size:f.size,data:r.result,desc:$("docDesc").value,date:billDate,uploadedAt:new Date().toLocaleString("en-GB")});save();$("docFile").value="";$("docDesc").value="";if($("docDate"))$("docDate").value="";renderDocs();};r.readAsDataURL(f);
 }
-function renderDocs(){$("docList").innerHTML=db.docs.length?db.docs.slice().reverse().map(d=>`<div class="filecard"><div>📎 <b>${esc(d.name)}</b><small> • ${d.date} • ${esc(d.desc||"")}</small></div><div><a class="btn soft" href="${d.data}" download="${esc(d.name)}">Open</a> <button class="btn red" onclick="deleteDoc(${d.id})">Delete</button></div></div>`).join(""):'<div class="empty">No documents uploaded.</div>';renderSignatures();}
+function clearDocFilters(){if($("docFrom"))$("docFrom").value="";if($("docTo"))$("docTo").value="";renderDocs();}
+function renderDocs(){
+ const from=$("docFrom")?.value||"",to=$("docTo")?.value||"";
+ let docs=(db.docs||[]).slice().reverse().filter(d=>{
+   if(!from&&!to)return true;
+   const dt=(d.date||"").slice(0,10);
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(dt))return false;
+   if(from&&dt<from)return false;
+   if(to&&dt>to)return false;
+   return true;
+ });
+ $("docList").innerHTML=docs.length?docs.map(d=>{
+   const dt=(d.date&&/^\d{4}-\d{2}-\d{2}/.test(d.date))?d.date.slice(0,10):"No date";
+   const up=d.uploadedAt?`<small>Uploaded: ${esc(d.uploadedAt)}</small>`:"";
+   return `<div class="filecard"><div>📎 <b>${esc(d.name)}</b><small> • Bill Date: ${esc(dt)}${d.desc?` • ${esc(d.desc)}`:""}</small>${up}</div><div><a class="btn soft" href="${d.data}" download="${esc(d.name)}">Open</a> <button class="btn red" onclick="deleteDoc(${d.id})">Delete</button></div></div>`;
+ }).join(""):'<div class="empty">No bills found for this date range.</div>';
+ renderSignatures();
+}
 function deleteDoc(id){db.docs=db.docs.filter(d=>d.id!==id);save();renderDocs();}
 let sigCtx,sigDrawing=false,sigHasInk=false,sigRatio=1;
 
@@ -2306,6 +2521,8 @@ function closeModals(){document.querySelectorAll(".modal").forEach(m=>m.classLis
 window.addEventListener("resize",()=>{if(appReady&&$("documents").classList.contains("active"))initSig();});
 (async function startup(){
  if(PORTABLE_BUNDLE && typeof PORTABLE_BUNDLE==='object'){db=PORTABLE_BUNDLE;}else{db=getLegacyDb()||makeDefaultDb();}
+ // Auto-preserve older HAB browser data on every new app version.
+ try{for(const x of habFindLegacyLocalDatabases())db=habMergeDb(db,x.data);}catch(e){console.warn('Legacy merge:',e);}
  ensureMasterData(); localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db)); refreshAll(); setTimeout(initSig,200);
  const cfg=cloudCfg();if(cfg.url&&cfg.key&&initCloudClient()){cloudClient.auth.onAuthStateChange((event,session)=>{cloudSession=session;if(session){setTimeout(()=>cloudLoad(),0);}else{setCloudStatus('Cloud configured but not signed in.');}});const sess=await cloudClient.auth.getSession();cloudSession=sess.data.session;if(cloudSession)await cloudLoad();}
  if($("cloudUrl")){const c=cloudCfg();$("cloudUrl").value=c.url;$("cloudKey").value=c.key;}

@@ -757,8 +757,13 @@ table tbody tr:hover{
   <div class="field"><label>Received Quantity</label><input type="number" min="0" step="0.001" id="bsQty" placeholder="0"></div>
   <div class="field"><label>Reference / Invoice No.</label><input id="bsRef" placeholder="Invoice number / reference"></div>
  </div>
- <div class="actions"><button class="btn green" onclick="habPostBillToStock()">✓ Confirm & Add Received Stock</button></div>
- <div id="bsStatus" class="notice" style="margin-top:10px">Bill photo/PDF stays attached. Confirm the detected/entered details before stock is changed.</div>
+ <div class="actions"><button class="btn orange" id="bsScanBtn" onclick="habScanSelectedBill()">✨ Free Auto Read</button><button class="btn green" onclick="habPostBillToStock()">✓ Confirm Single Item</button></div>
+ <div id="bsStatus" class="notice" style="margin-top:10px">Upload/select a bill, then tap <b>Free Auto Read</b>. Free OCR will read the bill where possible. Always review the detected items/quantities before confirming. Manual Bill → Stock remains available.</div>
+ <div id="bsAutoReview" style="display:none;margin-top:12px">
+  <div class="toolbar"><b>✨ Free OCR Bill Review</b><span style="flex:1"></span><button class="btn green" onclick="habConfirmAllScannedLines()">✓ Confirm All & Add Stock</button></div>
+  <div class="tablebox" style="margin-top:8px"><div class="scroller"><table><thead><tr><th>Use</th><th>Bill Item</th><th>Matched Stock Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody id="bsAutoBody"></tbody></table></div></div>
+  <small>Check the detected lines before confirming. Unmatched items are not posted until you select the correct stock item.</small>
+ </div>
 </div>
 
   </div>
@@ -2713,6 +2718,96 @@ function habPostBillToStock(){
  $("bsQty").value='';
  $("bsStatus").innerHTML=`✓ <b>${esc(item.name)}</b>: ${qty} ${esc(item.unit||'')} received on <b>${date}</b>. Later Opening / Closing balances recalculated; Kitchen Movement preserved.`;
 }
-</script>\n
+</script>
+<script id="habAutoInvoiceScannerV1">
+let habScannedInvoice=null;
+function habNorm(x){return String(x||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function habWords(x){return new Set(habNorm(x).split(/\s+/).filter(Boolean));}
+function habScore(a,b){
+ const A=habWords(a),B=habWords(b); if(!A.size||!B.size)return 0;
+ let hit=0; A.forEach(w=>{if(B.has(w))hit++});
+ const na=habNorm(a),nb=habNorm(b); let sc=hit/Math.max(A.size,B.size);
+ if(na===nb)sc=1; else if(na.includes(nb)||nb.includes(na))sc=Math.max(sc,.82);
+ return sc;
+}
+function habBestSupplier(name){
+ const vals=[...new Set((db.items||[]).map(i=>i.supplier).filter(Boolean))];
+ return vals.map(x=>[x,habScore(name,x)]).sort((a,b)=>b[1]-a[1])[0]||['',0];
+}
+function habBestItem(desc,supplier){
+ let arr=(db.items||[]).filter(i=>!supplier||i.supplier===supplier); if(!arr.length)arr=db.items||[];
+ return arr.map(i=>[i,habScore(desc,i.name)]).sort((a,b)=>b[1]-a[1])[0]||[null,0];
+}
+async function habScanSelectedBill(){
+ const id=$('bsDoc')?.value; const d=(db.docs||[]).find(x=>String(x.id)===String(id));
+ if(!d)return alert('Please select an uploaded bill first.');
+ if(!habAuthClient)return alert('Cloud login is not ready. Please sign in first.');
+ const {data:{session}}=await habAuthClient.auth.getSession();
+ if(!session)return alert('Please sign in to HAB first, then scan the bill.');
+ const btn=$('bsScanBtn'); if(btn){btn.disabled=true;btn.textContent='Free OCR reading…';}
+ $('bsStatus').innerHTML='⏳ Free OCR is reading the bill…';
+ try{
+  const {data,error}=await habAuthClient.functions.invoke('hab-free-ocr',{
+    body:{dataUrl:d.data,mime:d.type||'image/jpeg'},
+    headers:{Authorization:`Bearer ${session.access_token}`,apikey:HAB_PUBLISHABLE_KEY}
+  });
+  if(error){
+    let detail='';
+    try{
+      const ctx=error.context;
+      if(ctx && typeof ctx.clone==='function'){
+        const r=ctx.clone();
+        try{const j=await r.json();detail=j?.error||j?.message||JSON.stringify(j);}catch(_){detail=await r.text();}
+      }
+    }catch(_){}
+    throw new Error(detail||error.message||'Invoice scanner request failed.');
+  }
+  if(data?.error)throw new Error(data.error);
+  if(!data?.invoice)throw new Error('No invoice data returned.');
+  habScannedInvoice={...data.invoice,docId:String(d.id)};
+  const inv=habScannedInvoice, [sup,supScore]=habBestSupplier(inv.supplier);
+  if(sup && supScore>=.35){$('bsSupplier').value=sup;habBillStockItems();}
+  if(inv.invoice_date)$('bsDate').value=inv.invoice_date;
+  $('bsRef').value=inv.invoice_number||d.desc||d.name||'';
+  habRenderScannedInvoice();
+  $('bsStatus').innerHTML=`✓ Read <b>${esc(inv.supplier||'supplier')}</b> — Invoice <b>${esc(inv.invoice_number||'')}</b> — ${Number(inv.items?.length||0)} line(s). Review below, then Confirm All.`;
+ }catch(e){
+  console.error(e); $('bsStatus').innerHTML='⚠️ Free OCR could not read this bill: <b>'+esc(e?.message||String(e))+'</b><br>The bill is still saved. You can enter it manually below.';
+ }finally{if(btn){btn.disabled=false;btn.textContent='✨ Free Auto Read';}}
+}
+function habRenderScannedInvoice(){
+ const inv=habScannedInvoice, box=$('bsAutoReview'),body=$('bsAutoBody'); if(!inv||!box||!body)return;
+ const supplier=$('bsSupplier')?.value||'';
+ body.innerHTML=(inv.items||[]).map((ln,n)=>{
+  const [best,score]=habBestItem(ln.description,supplier); const selected=(best&&score>=.28)?String(best.id):'';
+  const opts=(db.items||[]).filter(i=>!supplier||i.supplier===supplier).sort((a,b)=>a.name.localeCompare(b.name)).map(i=>`<option value="${esc(i.id)}" ${String(i.id)===selected?'selected':''}>${esc(i.name)} — ${esc(i.unit||'')}</option>`).join('');
+  return `<tr><td><input type="checkbox" id="bsaUse${n}" ${selected?'checked':''}></td><td><b>${esc(ln.description||'')}</b></td><td><select id="bsaItem${n}"><option value="">Select item</option>${opts}</select></td><td><input id="bsaQty${n}" type="number" min="0" step="0.001" value="${Number(ln.quantity||0)}" style="min-width:90px"></td><td>${esc(ln.unit||'')}</td></tr>`;
+ }).join('')||'<tr><td colspan="5">No line items detected.</td></tr>';
+ box.style.display='block';
+}
+async function habConfirmAllScannedLines(){
+ const inv=habScannedInvoice;if(!inv)return alert('Scan a bill first.');
+ const date=$('bsDate')?.value||inv.invoice_date||'',supplier=$('bsSupplier')?.value||'',ref=$('bsRef')?.value.trim()||inv.invoice_number||'';
+ if(!date||!supplier)return alert('Please check Bill Date and Supplier first.');
+ const accepted=[];
+ (inv.items||[]).forEach((ln,n)=>{if(!$(`bsaUse${n}`)?.checked)return;const itemId=$(`bsaItem${n}`)?.value||'',qty=+($(`bsaQty${n}`)?.value||0);if(itemId&&qty>0)accepted.push({itemId,qty,line:n});});
+ if(!accepted.length)return alert('No valid bill lines selected. Select the correct stock item and quantity.');
+ db.billStockFingerprints=Array.isArray(db.billStockFingerprints)?db.billStockFingerprints:[];
+ let posted=0,dupes=0;
+ for(const x of accepted){
+  const item=itemById(x.itemId);if(!item)continue;
+  const fp=habBillFingerprint(inv.docId,date,supplier,x.itemId,x.qty,ref+'#'+x.line);
+  if(db.billStockFingerprints.includes(fp)){dupes++;continue;}
+  let row=(db.entries||[]).find(e=>e.date===date&&e.item===item.name&&e.supplier===supplier&&String(e.remark||'').includes('Bill receipt'));
+  if(row){row.received=(+row.received||0)+x.qty;row.remark=[row.remark,ref].filter(Boolean).join(' | ');}
+  else{const open=previousClosingForItem(item.name,supplier,date);row={id:'BILL-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),date,time:'12:00',frequency:db.settings.frequency||'Daily',supplier,item:item.name,category:item.category||'',unit:item.unit||'',open,received:x.qty,kitchen:0,close:open+x.qty,price:+item.price||0,reorder:+item.reorder||0,remark:'Bill receipt'+(ref?' — '+ref:'')};db.entries.push(row);}
+  db.billStockFingerprints.push(fp);habRecalculateItemTimeline(item.name,supplier);posted++;
+ }
+ save();refreshAll();habBillStockInit();
+ $('bsStatus').innerHTML=`✓ <b>${posted}</b> bill line(s) added to Received Stock${dupes?`; ${dupes} duplicate line(s) skipped`:''}. Back-dated balances recalculated; Kitchen Movement preserved.`;
+ if(posted)$('bsAutoReview').style.display='none';
+}
+</script>
+
 </body>
 </html>

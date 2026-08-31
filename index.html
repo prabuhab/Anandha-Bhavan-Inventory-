@@ -373,6 +373,28 @@ table tbody tr:hover{
   .cp-notes{margin-top:14px;border-top:3px solid #f28c28;padding-top:10px;font-size:10.5pt}
 }
 
+@media print{
+  @page{size:A4 portrait;margin:7mm}
+  #catering.active #cateringPrintSheet{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important;page-break-inside:avoid!important;break-inside:avoid-page!important}
+  #cateringPrintSheet.cp-fit-large{font-size:12.2pt!important}
+  #cateringPrintSheet.cp-fit-large .cp-meta{font-size:12pt!important;gap:10px 20px!important;padding:12px!important;margin:12px 0 15px!important}
+  #cateringPrintSheet.cp-fit-large .cp-table{font-size:12pt!important}
+  #cateringPrintSheet.cp-fit-large .cp-table th,#cateringPrintSheet.cp-fit-large .cp-table td{padding:10px 8px!important}
+  #cateringPrintSheet.cp-fit-large .cp-payment{font-size:12pt!important;padding:12px!important}
+  #cateringPrintSheet.cp-fit-compact .cp-header{margin-bottom:7px!important;padding-bottom:6px!important}
+  #cateringPrintSheet.cp-fit-compact .hab-print-real-logo{width:54px!important;height:54px!important;flex-basis:54px!important}
+  #cateringPrintSheet.cp-fit-compact .cp-header h1{font-size:18pt!important}
+  #cateringPrintSheet.cp-fit-compact .cp-sub{font-size:11.5pt!important}
+  #cateringPrintSheet.cp-fit-compact .cp-meta{font-size:9.2pt!important;gap:4px 12px!important;padding:6px!important;margin:7px 0 8px!important}
+  #cateringPrintSheet.cp-fit-compact .cp-table{font-size:9.4pt!important}
+  #cateringPrintSheet.cp-fit-compact .cp-table th,#cateringPrintSheet.cp-fit-compact .cp-table td{padding:5px!important}
+  #cateringPrintSheet.cp-fit-compact .cp-total{font-size:11pt!important;margin-top:6px!important}
+  #cateringPrintSheet.cp-fit-compact .cp-payment{font-size:9.5pt!important;padding:7px!important;margin-top:7px!important;gap:5px 10px!important}
+  #cateringPrintSheet.cp-fit-compact .cp-notes{font-size:9pt!important;margin-top:7px!important;padding-top:6px!important}
+  .cp-payment{margin-top:10px;padding:10px;border:2px solid #2f6f36;border-radius:6px;background:#f6fbf4!important;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px 14px;font-size:10.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .cp-payment .cp-pay-balance{font-weight:800;color:#c86b10}
+}
+
 
 @media(max-width:700px){
  #stock .toolbar{gap:8px}
@@ -504,6 +526,79 @@ table tbody tr:hover{
   #mlQGrand{color:#2f6f36!important}
 }
 
+
+/* Catering Bulk Pack Mode */
+.cat-mode-switch{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 14px}.cat-mode-switch .active-mode{box-shadow:0 0 0 3px rgba(47,139,58,.2);font-weight:800}.cat-bulk-summary{display:none;margin-top:14px;padding:14px;border:1px solid #d7e7d2;border-radius:14px;background:#fbfff8}.cat-bulk-summary.show{display:block}.cat-bulk-mode .cat-standard-only{display:none!important}.cat-payment-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}.cat-confirm-box{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 12px;border:1px solid #d7d7c5;border-radius:12px;background:#fff}.cat-confirm-box input{width:22px;height:22px}.cat-balance{font-size:1.15rem;font-weight:800;color:#247a3b}
+
+/* HAB Catering final smart A4 print sizing + strong address */
+@media print{
+  #cateringPrintSheet{--hab-print-scale:1;transform-origin:top left!important;zoom:var(--hab-print-scale)!important}
+  #cateringPrintSheet .cp-address{color:#000!important;font-weight:800!important;font-size:10.5pt!important;line-height:1.35!important}
+  #cateringPrintSheet .cp-meta .cp-venue-block{grid-column:1/-1!important;color:#000!important;font-weight:700!important;line-height:1.45!important}
+  #cateringPrintSheet .cp-meta .cp-venue-block b{color:#000!important;font-weight:900!important}
+  #cateringPrintSheet.cp-auto-xl .cp-meta{font-size:13pt!important;line-height:1.45!important;padding:14px!important}
+  #cateringPrintSheet.cp-auto-xl .cp-table{font-size:13pt!important}
+  #cateringPrintSheet.cp-auto-xl .cp-table th,#cateringPrintSheet.cp-auto-xl .cp-table td{padding:11px 9px!important;line-height:1.35!important}
+  #cateringPrintSheet.cp-auto-xl .cp-payment{font-size:12.5pt!important;padding:13px!important;line-height:1.4!important}
+  #cateringPrintSheet.cp-auto-xl .cp-notes{font-size:11.5pt!important}
+  #cateringPrintSheet.cp-auto-lg .cp-meta{font-size:12pt!important;line-height:1.4!important;padding:12px!important}
+  #cateringPrintSheet.cp-auto-lg .cp-table{font-size:12pt!important}
+  #cateringPrintSheet.cp-auto-lg .cp-table th,#cateringPrintSheet.cp-auto-lg .cp-table td{padding:9px 8px!important;line-height:1.3!important}
+  #cateringPrintSheet.cp-auto-lg .cp-payment{font-size:11.5pt!important;padding:11px!important}
+  #cateringPrintSheet.cp-auto-sm .cp-meta{font-size:9pt!important;padding:5px!important;margin:5px 0 6px!important;gap:3px 10px!important}
+  #cateringPrintSheet.cp-auto-sm .cp-table{font-size:9pt!important}
+  #cateringPrintSheet.cp-auto-sm .cp-table th,#cateringPrintSheet.cp-auto-sm .cp-table td{padding:4px!important;line-height:1.15!important}
+  #cateringPrintSheet.cp-auto-sm .cp-payment{font-size:9pt!important;padding:6px!important;margin-top:5px!important}
+}
+
+
+
+/* FINAL CATERING PRINT ENHANCEMENTS: Event Date emphasis + 2-column bulk menu */
+@media print{
+  #cateringPrintSheet .cp-event-date{
+    grid-column:1/-1!important;
+    font-size:1.38em!important;
+    line-height:1.2!important;
+    font-weight:900!important;
+    color:#000!important;
+    text-align:center!important;
+    padding:7px 10px!important;
+    border:2px solid #2f6f36!important;
+    border-radius:6px!important;
+    background:#fffaf2!important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  #cateringPrintSheet .cp-event-date b{font-weight:900!important;color:#2f6f36!important}
+  #cateringPrintSheet .cp-bulk-grid{
+    width:100%!important;
+    border-collapse:separate!important;
+    border-spacing:7px 5px!important;
+    table-layout:fixed!important;
+    font-size:12.8pt!important;
+    margin-top:2px!important;
+  }
+  #cateringPrintSheet .cp-bulk-grid td{
+    width:50%!important;
+    border:1.5px solid #b9cdbb!important;
+    border-radius:5px!important;
+    padding:8px 10px!important;
+    vertical-align:middle!important;
+    background:#f8fcf6!important;
+    line-height:1.25!important;
+    font-weight:800!important;
+    color:#111!important;
+  }
+  #cateringPrintSheet .cp-bulk-grid td:nth-child(even){background:#fff8ef!important}
+  #cateringPrintSheet .cp-bulk-no{display:inline-block;min-width:24px;font-weight:900;color:#2f6f36}
+  #cateringPrintSheet.cp-auto-xl .cp-bulk-grid{font-size:14.2pt!important;border-spacing:8px 6px!important}
+  #cateringPrintSheet.cp-auto-xl .cp-bulk-grid td{padding:10px 11px!important}
+  #cateringPrintSheet.cp-auto-lg .cp-bulk-grid{font-size:13.2pt!important;border-spacing:7px 5px!important}
+  #cateringPrintSheet.cp-auto-lg .cp-bulk-grid td{padding:8px 10px!important}
+  #cateringPrintSheet.cp-auto-sm .cp-bulk-grid{font-size:10.7pt!important;border-spacing:5px 3px!important}
+  #cateringPrintSheet.cp-auto-sm .cp-bulk-grid td{padding:5px 7px!important;line-height:1.15!important}
+  #cateringPrintSheet .cp-payment{font-weight:800!important}
+}
 </style>
 
 <!-- Anandha Bhavan App Icon -->
@@ -896,17 +991,24 @@ table tbody tr:hover{
   <div class="formgrid">
    <div class="field"><label>Order Date *</label><input type="date" id="catOrderDate"></div>
    <div class="field"><label>Event Date *</label><input type="date" id="catEventDate"></div>
+   <div class="field"><label>Pickup Time *</label><input type="time" id="catPickupTime"></div>
    <div class="field"><label>Customer Name *</label><input id="catCustomer" placeholder="Customer name"></div>
    <div class="field"><label>Phone</label><input id="catPhone" placeholder="Phone number"></div>
    <div class="field"><label>Event / Function</label><input id="catEvent" placeholder="Wedding, Birthday, Party..."></div>
-   <div class="field"><label>Venue / Address</label><input id="catVenue" placeholder="Venue / delivery address"></div>
+   <div class="field"><label>Venue / Address</label><textarea id="catVenue" rows="4" placeholder="Example:
+HOTEL ANANDHA BHAVAN
+545 High Road
+Wembley, London
+HA0 2DJ" style="resize:vertical;min-height:96px;white-space:pre-wrap"></textarea><div class="muted" style="font-size:11px;margin-top:4px">Press Enter to start a new address line.</div></div>
    <div class="field"><label>Guests</label><input id="catGuests" type="number" min="0" step="1" placeholder="0"></div>
   </div>
  </div>
- <div class="card">
-  <div class="titlebar"><div><h3>Food Items & Price</h3><p class="subtitle">Unit Price × Quantity Required = Line Total</p></div><button class="btn green no-print" onclick="addCateringRow()">+ Add Item</button></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>S.No</th><th>Food Item</th><th>Unit Type</th><th>Price £ / Unit</th><th>Quantity Required</th><th>Total £</th><th class="no-print">Action</th></tr></thead><tbody id="catRows"></tbody></table></div>
-  <div class="toolbar" style="justify-content:flex-end;margin-top:12px"><strong style="font-size:1.35rem">Grand Total: <span id="catGrand">£0.00</span></strong></div>
+ <div class="card no-print"><h3>Order Format</h3><div class="cat-mode-switch"><button type="button" id="catModeStandardBtn" class="btn green active-mode" onclick="setCateringMode('standard')">🍽️ Standard Catering</button><button type="button" id="catModeBulkBtn" class="btn orange" onclick="setCateringMode('bulk')">📦 Bulk Pack Order</button></div><div class="notice">Use <b>Bulk Pack Order</b> for orders such as 80 packs / 90 packs. Unit Type, Unit Price and item Quantity are not required.</div></div>
+ <div class="card" id="catItemsCard">
+  <div class="titlebar"><div><h3 id="catItemsTitle">Food Items & Price</h3><p class="subtitle" id="catItemsSubtitle">Unit Price × Quantity Required = Line Total</p></div><button class="btn green no-print" onclick="addCateringRow()">+ Add Item</button></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>S.No</th><th>Food Item</th><th class="cat-standard-only">Unit Type</th><th class="cat-standard-only">Price £ / Unit</th><th class="cat-standard-only">Quantity Required</th><th class="cat-standard-only">Total £</th><th class="no-print">Action</th></tr></thead><tbody id="catRows"></tbody></table></div>
+  <div id="catStandardGrand" class="toolbar" style="justify-content:flex-end;margin-top:12px"><strong style="font-size:1.35rem">Grand Total: <span id="catGrand">£0.00</span></strong></div>
+  <div id="catBulkSummary" class="cat-bulk-summary"><h3>Bulk Pack Payment Details</h3><div class="cat-payment-grid"><div class="field"><label>Total Packs</label><input id="catBulkPacks" type="number" min="0" step="1" placeholder="e.g. 80"></div><div class="field"><label>Cash Total £</label><input id="catBulkTotal" type="number" min="0" step="0.01" placeholder="0.00" oninput="recalcBulkCatering()"></div><div class="field"><label>Cash Advance £</label><input id="catBulkAdvance" type="number" min="0" step="0.01" placeholder="0.00" oninput="recalcBulkCatering()"></div><div class="field"><label>Paid Amount £</label><input id="catBulkPaid" type="number" min="0" step="0.01" placeholder="0.00" oninput="recalcBulkCatering()"></div><div class="field"><label>Balance £</label><div class="cat-confirm-box"><span id="catBulkBalance" class="cat-balance">£0.00</span></div></div><div class="field"><label>Confirm</label><label class="cat-confirm-box"><input id="catBulkConfirmed" type="checkbox"> Order Confirmed</label></div><div class="field"><label>Payment Method</label><select id="catBulkPayment"><option>Cash</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div></div></div>
   <div class="field"><label>Notes / Customer Information</label><textarea id="catNotes" rows="3" placeholder="Menu notes, delivery time, special instructions..."></textarea></div>
   <div class="toolbar no-print"><button class="btn green" onclick="saveCateringOrder()">💾 Save Order</button><button class="btn soft" onclick="newCateringOrder()">Clear / New</button></div>
  </div>
@@ -926,11 +1028,13 @@ table tbody tr:hover{
     </div>
   </div>
   <div class="cp-meta" id="cpMeta"></div>
-  <table class="cp-table">
+  <table class="cp-table" id="cpStandardTable">
     <thead><tr><th>S.No</th><th>Food Item</th><th>Quantity</th><th>Total £</th></tr></thead>
     <tbody id="cpRows"></tbody>
   </table>
-  <div class="cp-total">Grand Total: <span id="cpGrand"></span></div>
+  <table id="cpBulkGrid" class="cp-bulk-grid" style="display:none"><tbody id="cpBulkGridRows"></tbody></table>
+  <div class="cp-total" id="cpGrandWrap">Grand Total: <span id="cpGrand"></span></div>
+  <div id="cpBulkPayment" class="cp-payment" style="display:none"></div>
   <div class="cp-notes" id="cpNotesBox" style="display:none"></div>
 </div>
 </section>
@@ -1197,45 +1301,75 @@ function prepareVendorPrintSheet(){
 }
 
 function prepareCateringPrintSheet(){
- const items=collectCateringItems().filter(x=>String(x.item||'').trim() && (+x.qty||0)>0);
- if(!items.length){alert('Please add at least one catering item with quantity before printing.');return false;}
-
- const orderDate=$('catOrderDate').value||'';
- const eventDate=$('catEventDate').value||'';
- const customer=$('catCustomer').value.trim();
- const phone=$('catPhone').value.trim();
- const eventName=$('catEvent').value.trim();
- const venue=$('catVenue').value.trim();
- const guests=+$('catGuests').value||0;
- const notes=$('catNotes').value.trim();
-
- let meta=[];
- if(orderDate)meta.push(`<div><b>Order Date:</b> ${esc(orderDate)}</div>`);
- if(eventDate)meta.push(`<div><b>Event Date:</b> ${esc(eventDate)}</div>`);
- if(customer)meta.push(`<div><b>Customer:</b> ${esc(customer)}</div>`);
- if(phone)meta.push(`<div><b>Phone:</b> ${esc(phone)}</div>`);
- if(eventName)meta.push(`<div><b>Event:</b> ${esc(eventName)}</div>`);
- if(venue)meta.push(`<div><b>Venue:</b> ${esc(venue)}</div>`);
- if(guests>0)meta.push(`<div><b>Guests:</b> ${guests}</div>`);
- $('cpMeta').innerHTML=meta.join('');
-
- $('cpRows').innerHTML=items.map((x,n)=>{
-   const total=(+x.price||0)*(+x.qty||0);
-   return `<tr><td>${n+1}</td><td><b>${esc(x.item)}</b></td><td>${x.qty}</td><td>${money(total)}</td></tr>`;
- }).join('');
-
- const grand=items.reduce((a,x)=>a+(+x.price||0)*(+x.qty||0),0);
- $('cpGrand').textContent=money(grand);
-
- if(notes){
-   $('cpNotesBox').style.display='block';
-   $('cpNotesBox').innerHTML=`<b>Notes:</b> ${esc(notes)}`;
+ const items=collectCateringItems().filter(x=>String(x.item||'').trim() && (cateringMode==='bulk' || (+x.qty||0)>0));
+ if(!items.length){alert(cateringMode==='bulk'?'Please add at least one catering menu item before printing.':'Please add at least one catering item with quantity before printing.');return false;}
+ const orderDate=$('catOrderDate').value||'',eventDate=$('catEventDate').value||'',pickupTime=$('catPickupTime')?.value||'',customer=$('catCustomer').value.trim(),phone=$('catPhone').value.trim(),eventName=$('catEvent').value.trim(),venue=$('catVenue').value.trim(),guests=+$('catGuests').value||0,notes=$('catNotes').value.trim();
+ let meta=[]; if(orderDate)meta.push(`<div><b>Order Date:</b> ${esc(orderDate)}</div>`); if(eventDate)meta.push(`<div class="cp-event-date"><b>EVENT DATE:</b> ${esc(eventDate)}</div>`); if(pickupTime)meta.push(`<div><b>Pickup Time:</b> ${esc(pickupTime)}</div>`); if(customer)meta.push(`<div><b>Customer:</b> ${esc(customer)}</div>`); if(phone)meta.push(`<div><b>Phone:</b> ${esc(phone)}</div>`); if(eventName)meta.push(`<div><b>Event:</b> ${esc(eventName)}</div>`); if(venue)meta.push(`<div class="cp-venue-block"><b>Venue / Address:</b><div style="white-space:pre-line;margin-top:3px;color:#000;font-weight:800">${esc(venue)}</div></div>`); if(guests>0)meta.push(`<div><b>Guests:</b> ${guests}</div>`); $('cpMeta').innerHTML=meta.join('');
+ if(cateringMode==='bulk'){
+   if($('cpStandardTable'))$('cpStandardTable').style.display='none';
+   if($('cpBulkGrid'))$('cpBulkGrid').style.display='table';
+   $('cpRows').innerHTML='';
+   const half=Math.ceil(items.length/2);
+   let gridRows=[];
+   for(let i=0;i<half;i++){
+     const left=items[i], right=items[i+half];
+     const leftCell=left?`<td><span class="cp-bulk-no">${i+1}.</span> ${esc(left.item)}</td>`:'<td></td>';
+     const rightCell=right?`<td><span class="cp-bulk-no">${i+half+1}.</span> ${esc(right.item)}</td>`:'<td></td>';
+     gridRows.push(`<tr>${leftCell}${rightCell}</tr>`);
+   }
+   $('cpBulkGridRows').innerHTML=gridRows.join('');
+   const total=+$('catBulkTotal')?.value||0,advance=+$('catBulkAdvance')?.value||0,paid=+$('catBulkPaid')?.value||0,balance=Math.max(0,total-advance-paid),confirmed=!!$('catBulkConfirmed')?.checked,method=$('catBulkPayment')?.value||'';
+   $('cpGrand').textContent=money(total); $('cpGrandWrap').style.display='none';
+   $('cpBulkPayment').style.display='grid'; $('cpBulkPayment').innerHTML=`<div><b>Cash Total:</b> ${money(total)}</div><div><b>Cash Advance:</b> ${money(advance)}</div><div><b>Paid Amount:</b> ${money(paid)}</div><div class="cp-pay-balance"><b>Balance:</b> ${money(balance)}</div><div><b>Payment Method:</b> ${esc(method)}</div><div><b>Status:</b> ${confirmed?'CONFIRMED':'NOT CONFIRMED'}</div>`;
  }else{
-   $('cpNotesBox').style.display='none';
-   $('cpNotesBox').innerHTML='';
+   if($('cpStandardTable'))$('cpStandardTable').style.display='table';
+   if($('cpBulkGrid'))$('cpBulkGrid').style.display='none';
+   if($('cpBulkGridRows'))$('cpBulkGridRows').innerHTML='';
+   $('cpRows').innerHTML=items.map((x,n)=>{const total=(+x.price||0)*(+x.qty||0);return `<tr><td>${n+1}</td><td><b>${esc(x.item)}</b></td><td>${x.qty}</td><td>${money(total)}</td></tr>`;}).join('');
+   const grand=items.reduce((a,x)=>a+(+x.price||0)*(+x.qty||0),0); $('cpGrand').textContent=money(grand); $('cpGrandWrap').style.display='block'; $('cpBulkPayment').style.display='none'; $('cpBulkPayment').innerHTML='';
+ }
+ if(notes){$('cpNotesBox').style.display='block';$('cpNotesBox').innerHTML=`<b>Notes:</b> ${esc(notes)}`;}else{$('cpNotesBox').style.display='none';$('cpNotesBox').innerHTML='';}
+ const sh=$('cateringPrintSheet');
+ sh.classList.remove('cp-fit-large','cp-fit-compact','cp-auto-xl','cp-auto-lg','cp-auto-sm');
+ const count=items.length;
+ // Start with a generous font when the order is short; the beforeprint fitter below
+ // will step down only when the rendered A4 height needs it.
+ if(cateringMode==='bulk'){
+   if(count<=12) sh.classList.add('cp-auto-xl');
+   else if(count<=22) sh.classList.add('cp-auto-lg');
+   else if(count>=32) sh.classList.add('cp-auto-sm');
+ }else{
+   if(count<=7) sh.classList.add('cp-auto-xl');
+   else if(count<=13) sh.classList.add('cp-auto-lg');
+   else if(count>=20) sh.classList.add('cp-auto-sm');
  }
  return true;
 }
+
+function habSmartFitCateringPrint(){
+ const sh=$('cateringPrintSheet');
+ if(!sh || !$('catering')?.classList.contains('active')) return;
+ sh.style.removeProperty('--hab-print-scale');
+ const classes=['cp-auto-xl','cp-auto-lg','cp-auto-sm'];
+ const original=classes.find(c=>sh.classList.contains(c))||'';
+ // A4 printable height with 7mm page margins is about 283mm.
+ // CSS px conversion gives a reliable browser-print target with a small safety reserve.
+ const targetPx=(283/25.4)*96-18;
+ const fits=()=>sh.getBoundingClientRect().height<=targetPx;
+ if(fits()) return;
+ sh.classList.remove(...classes); sh.classList.add('cp-auto-lg');
+ if(fits()) return;
+ sh.classList.remove(...classes);
+ if(fits()) return;
+ sh.classList.add('cp-auto-sm');
+ if(fits()) return;
+ // Last-resort proportional fit for unusually long orders, still on one A4 page.
+ const h=sh.getBoundingClientRect().height;
+ if(h>targetPx){ const z=Math.max(.72,Math.min(1,targetPx/h)); sh.style.setProperty('--hab-print-scale',z.toFixed(3)); }
+}
+window.addEventListener('beforeprint',()=>{try{habSmartFitCateringPrint()}catch(e){console.warn(e)}});
+window.addEventListener('afterprint',()=>{const sh=$('cateringPrintSheet');if(sh)sh.style.removeProperty('--hab-print-scale')});
+
 function printActivePage(){
  if($("vendor")?.classList.contains("active")){
    if(!prepareVendorPrintSheet())return;
@@ -1836,20 +1970,23 @@ function openVendorOrder(id){let o=(db.vendorOrders||[]).find(x=>x.id===id);if(!
 function deleteVendorOrder(id){if(!confirm('Delete this vendor order?'))return;db.vendorOrders=(db.vendorOrders||[]).filter(x=>x.id!==id);save();renderVendorOrders();}
 
 let editCateringId=null;
+let cateringMode="standard";
 const CAT_UNITS=['Pieces','Portion','Tray','Container','Kg','Gram','Litre','ml','Plate','Box','Pack','Dozen','Set','Person','Bowl','Bucket','Pan','Each'];
 function cateringRows(){return document.querySelectorAll('#catRows tr');}
 function addCateringRow(data={}){
  const body=$('catRows'); if(!body)return;
  const tr=document.createElement('tr');
- tr.innerHTML=`<td class="catNo"></td><td><input class="catItem" value="${esc(data.item||'')}" placeholder="Food item"></td><td><select class="catUnit">${CAT_UNITS.map(u=>`<option ${u===(data.unit||'Pieces')?'selected':''}>${u}</option>`).join('')}</select></td><td><input class="catPrice" type="number" min="0" step="0.01" value="${Number(data.price||0)}"></td><td><input class="catQty" type="number" min="0" step="0.001" value="${Number(data.qty||1)}"></td><td class="catTotal">£0.00</td><td class="no-print"><button class="btn red" type="button" onclick="this.closest('tr').remove();recalcCatering()">Delete</button></td>`;
+ tr.innerHTML=`<td class="catNo"></td><td><input class="catItem" value="${esc(data.item||'')}" placeholder="Food item"></td><td class="cat-standard-only"><select class="catUnit">${CAT_UNITS.map(u=>`<option ${u===(data.unit||'Pieces')?'selected':''}>${u}</option>`).join('')}</select></td><td class="cat-standard-only"><input class="catPrice" type="number" min="0" step="0.01" value="${Number(data.price||0)}"></td><td class="cat-standard-only"><input class="catQty" type="number" min="0" step="0.001" value="${Number(data.qty||1)}"></td><td class="catTotal cat-standard-only">£0.00</td><td class="no-print"><button class="btn red" type="button" onclick="this.closest('tr').remove();recalcCatering()">Delete</button></td>`;
  body.appendChild(tr); tr.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',recalcCatering)); recalcCatering();
 }
+function setCateringMode(mode,skipClear=false){cateringMode=mode==='bulk'?'bulk':'standard';const card=$('catItemsCard');if(card)card.classList.toggle('cat-bulk-mode',cateringMode==='bulk');$('catModeStandardBtn')?.classList.toggle('active-mode',cateringMode==='standard');$('catModeBulkBtn')?.classList.toggle('active-mode',cateringMode==='bulk');if($('catItemsTitle'))$('catItemsTitle').textContent=cateringMode==='bulk'?'Bulk Pack Menu Items':'Food Items & Price';if($('catItemsSubtitle'))$('catItemsSubtitle').textContent=cateringMode==='bulk'?'Menu item names only — no unit, unit price or item quantity required.':'Unit Price × Quantity Required = Line Total';if($('catStandardGrand'))$('catStandardGrand').style.display=cateringMode==='bulk'?'none':'flex';if($('catBulkSummary'))$('catBulkSummary').classList.toggle('show',cateringMode==='bulk');recalcCatering();recalcBulkCatering();}
+function recalcBulkCatering(){const total=+$('catBulkTotal')?.value||0,advance=+$('catBulkAdvance')?.value||0,paid=+$('catBulkPaid')?.value||0,b=Math.max(0,total-advance-paid);if($('catBulkBalance'))$('catBulkBalance').textContent=money(b);}
 function recalcCatering(){let grand=0;cateringRows().forEach((tr,i)=>{tr.querySelector('.catNo').textContent=i+1;let p=+tr.querySelector('.catPrice').value||0,q=+tr.querySelector('.catQty').value||0,t=p*q;grand+=t;tr.querySelector('.catTotal').textContent=money(t);});if($('catGrand'))$('catGrand').textContent=money(grand);}
-function newCateringOrder(){editCateringId=null;if(!$('catRows'))return;let d=new Date().toISOString().slice(0,10);$('catOrderDate').value=d;$('catEventDate').value='';['catCustomer','catPhone','catEvent','catVenue','catNotes'].forEach(id=>$(id).value='');$('catGuests').value='';$('catRows').innerHTML='';addCateringRow();recalcCatering();}
-function collectCateringItems(){return [...cateringRows()].map(tr=>({item:tr.querySelector('.catItem').value.trim(),unit:tr.querySelector('.catUnit').value,price:+tr.querySelector('.catPrice').value||0,qty:+tr.querySelector('.catQty').value||0})).filter(x=>x.item);}
-function saveCateringOrder(){let orderDate=$('catOrderDate').value,eventDate=$('catEventDate').value,customer=$('catCustomer').value.trim(),items=collectCateringItems();if(!orderDate||!eventDate||!customer)return alert('Please enter Order Date, Event Date and Customer Name.');if(!items.length)return alert('Please add at least one food item.');let total=items.reduce((a,x)=>a+x.price*x.qty,0);let o={id:editCateringId||('CAT-'+Date.now()),orderDate,eventDate,date:eventDate,customer,phone:$('catPhone').value.trim(),event:$('catEvent').value.trim(),venue:$('catVenue').value.trim(),guests:+$('catGuests').value||0,notes:$('catNotes').value.trim(),items,total,updatedAt:new Date().toISOString()};db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];if(editCateringId)db.cateringOrders=db.cateringOrders.map(x=>x.id===editCateringId?o:x);else db.cateringOrders.push(o);save();renderCateringOrders();alert('Catering order saved.');newCateringOrder();}
-function renderCateringOrders(){if(!$('catOrderList'))return;db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];let f=$('catFrom').value,t=$('catTo').value,q=$('catSearch').value.trim().toLowerCase();let rows=db.cateringOrders.filter(o=>{let d=o.eventDate||o.date||o.orderDate||'';return(!f||d>=f)&&(!t||d<=t)&&(!q||`${o.customer} ${o.event} ${o.phone}`.toLowerCase().includes(q))}).sort((a,b)=>String(b.eventDate||b.date||'').localeCompare(String(a.eventDate||a.date||'')));$('catOrderList').innerHTML=rows.length?rows.map(o=>`<tr><td>${esc(o.orderDate||o.date||'')}</td><td>${esc(o.eventDate||o.date||'')}</td><td>${esc(o.customer)}</td><td>${esc(o.event||'')}</td><td>${o.guests||''}</td><td>${money(o.total||0)}</td><td class="no-print"><button class="btn soft" onclick="editCateringOrder('${esc(o.id)}')">Edit</button> <button class="btn red" onclick="deleteCateringOrder('${esc(o.id)}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="7">No catering orders found.</td></tr>';}
-function editCateringOrder(id){let o=(db.cateringOrders||[]).find(x=>x.id===id);if(!o)return;editCateringId=id;$('catOrderDate').value=o.orderDate||o.date||'';$('catEventDate').value=o.eventDate||o.date||'';$('catCustomer').value=o.customer||'';$('catPhone').value=o.phone||'';$('catEvent').value=o.event||'';$('catVenue').value=o.venue||'';$('catGuests').value=o.guests||'';$('catNotes').value=o.notes||'';$('catRows').innerHTML='';(o.items||[]).forEach(addCateringRow);if(!(o.items||[]).length)addCateringRow();recalcCatering();window.scrollTo({top:0,behavior:'smooth'});}
+function newCateringOrder(){editCateringId=null;if(!$('catRows'))return;let d=new Date().toISOString().slice(0,10);$('catOrderDate').value=d;$('catEventDate').value='';['catCustomer','catPhone','catEvent','catVenue','catNotes','catPickupTime'].forEach(id=>$(id).value='');$('catGuests').value='';$('catRows').innerHTML='';if($('catBulkPacks'))$('catBulkPacks').value='';if($('catBulkTotal'))$('catBulkTotal').value='';if($('catBulkAdvance'))$('catBulkAdvance').value='';if($('catBulkPaid'))$('catBulkPaid').value='';if($('catBulkConfirmed'))$('catBulkConfirmed').checked=false;if($('catBulkPayment'))$('catBulkPayment').value='Cash';setCateringMode('standard',true);addCateringRow();recalcCatering();recalcBulkCatering();}
+function collectCateringItems(){return [...cateringRows()].map(tr=>({item:tr.querySelector('.catItem').value.trim(),unit:cateringMode==='bulk'?'':tr.querySelector('.catUnit').value,price:cateringMode==='bulk'?0:(+tr.querySelector('.catPrice').value||0),qty:cateringMode==='bulk'?0:(+tr.querySelector('.catQty').value||0)})).filter(x=>x.item);}
+function saveCateringOrder(){let orderDate=$('catOrderDate').value,eventDate=$('catEventDate').value,pickupTime=$('catPickupTime').value,customer=$('catCustomer').value.trim(),items=collectCateringItems();if(!orderDate||!eventDate||!pickupTime||!customer)return alert('Please enter Order Date, Event Date, Pickup Time and Customer Name.');if(!items.length)return alert('Please add at least one food item.');let bulk=cateringMode==='bulk',total=bulk?(+$('catBulkTotal').value||0):items.reduce((a,x)=>a+x.price*x.qty,0),advance=bulk?(+$('catBulkAdvance').value||0):0,paid=bulk?(+$('catBulkPaid').value||0):0;let o={id:editCateringId||('CAT-'+Date.now()),mode:bulk?'bulk':'standard',orderDate,eventDate,pickupTime,date:eventDate,customer,phone:$('catPhone').value.trim(),event:$('catEvent').value.trim(),venue:$('catVenue').value.trim(),guests:+$('catGuests').value||0,notes:$('catNotes').value.trim(),items,total,bulkPacks:bulk?(+$('catBulkPacks').value||0):0,advance,paid,balance:bulk?Math.max(0,total-advance-paid):0,confirmed:bulk?!!$('catBulkConfirmed').checked:false,paymentMethod:bulk?$('catBulkPayment').value:'',updatedAt:new Date().toISOString()};db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];if(editCateringId)db.cateringOrders=db.cateringOrders.map(x=>x.id===editCateringId?o:x);else db.cateringOrders.push(o);save();renderCateringOrders();alert('Catering order saved.');newCateringOrder();}
+function renderCateringOrders(){if(!$('catOrderList'))return;db.cateringOrders=Array.isArray(db.cateringOrders)?db.cateringOrders:[];let f=$('catFrom').value,t=$('catTo').value,q=$('catSearch').value.trim().toLowerCase();let rows=db.cateringOrders.filter(o=>{let d=o.eventDate||o.date||o.orderDate||'';return(!f||d>=f)&&(!t||d<=t)&&(!q||`${o.customer} ${o.event} ${o.phone}`.toLowerCase().includes(q))}).sort((a,b)=>String(b.eventDate||b.date||'').localeCompare(String(a.eventDate||a.date||'')));$('catOrderList').innerHTML=rows.length?rows.map(o=>`<tr><td>${esc(o.orderDate||o.date||'')}</td><td>${esc(o.eventDate||o.date||'')}</td><td>${esc(o.customer)}</td><td>${esc(o.event||'')}${o.mode==='bulk'?'<br><small>📦 '+(o.bulkPacks||0)+' packs • '+(o.confirmed?'Confirmed':'Not confirmed')+' • Paid '+money(o.paid||0)+'</small>':''}</td><td>${o.guests||''}</td><td>${money(o.total||0)}</td><td class="no-print"><button class="btn soft" onclick="editCateringOrder('${esc(o.id)}')">Edit</button> <button class="btn red" onclick="deleteCateringOrder('${esc(o.id)}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="7">No catering orders found.</td></tr>';}
+function editCateringOrder(id){let o=(db.cateringOrders||[]).find(x=>x.id===id);if(!o)return;editCateringId=id;$('catOrderDate').value=o.orderDate||o.date||'';$('catEventDate').value=o.eventDate||o.date||'';if($('catPickupTime'))$('catPickupTime').value=o.pickupTime||'';$('catCustomer').value=o.customer||'';$('catPhone').value=o.phone||'';$('catEvent').value=o.event||'';$('catVenue').value=o.venue||'';$('catGuests').value=o.guests||'';$('catNotes').value=o.notes||'';$('catRows').innerHTML='';setCateringMode(o.mode==='bulk'?'bulk':'standard',true);(o.items||[]).forEach(addCateringRow);if(!(o.items||[]).length)addCateringRow();if($('catBulkPacks'))$('catBulkPacks').value=o.bulkPacks||'';if($('catBulkTotal'))$('catBulkTotal').value=o.mode==='bulk'?(o.total||0):'';if($('catBulkAdvance'))$('catBulkAdvance').value=o.advance||'';if($('catBulkPaid'))$('catBulkPaid').value=o.paid||'';if($('catBulkConfirmed'))$('catBulkConfirmed').checked=!!o.confirmed;if($('catBulkPayment'))$('catBulkPayment').value=o.paymentMethod||'Cash';recalcCatering();recalcBulkCatering();window.scrollTo({top:0,behavior:'smooth'});}
 function deleteCateringOrder(id){if(!confirm('Delete this catering order?'))return;db.cateringOrders=(db.cateringOrders||[]).filter(x=>x.id!==id);save();renderCateringOrders();}
 function clearCateringSearch(){$('catFrom').value='';$('catTo').value='';$('catSearch').value='';renderCateringOrders();}
 

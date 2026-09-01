@@ -1220,17 +1220,44 @@ let cloudClient=null, cloudSession=null, cloudRevision=0, cloudSyncing=false, cl
 function cloudCfg(){return {url:(localStorage.getItem('HAB_SUPABASE_URL')||'https://yisipcyzwhmruocqrwkv.supabase.co').trim(),key:(localStorage.getItem('HAB_SUPABASE_KEY')||'sb_publishable_jKjIYM8aJ4IDamba0Q9-Gg_3rcAgC50').trim()};}
 function setCloudStatus(msg){const el=$("cloudStatus");if(el)el.innerText=msg;}
 function initCloudClient(){const c=cloudCfg(); if(!c.url||!c.key||!window.supabase){cloudClient=null;return false;} try{cloudClient=window.supabase.createClient(c.url,c.key); return true;}catch(e){cloudClient=null;return false;}}
-async function cloudSave(){if(!cloudClient||!cloudSession||cloudSyncing||PORTABLE_MODE)return;cloudSyncing=true;try{const uid=cloudSession.user.id;const {data:row,error:getErr}=await cloudClient.from('app_state').select('revision,updated_at').eq('user_id',uid).maybeSingle();if(getErr)throw getErr;const serverRev=Number(row?.revision||0);if(row && serverRev!==Number(cloudRevision)){setCloudStatus('⚠️ Cloud changed on another device. Local data was NOT overwritten. Please reload/sync before making more edits.');cloudSyncing=false;return;}const nextRev=serverRev+1;const payload={user_id:uid,revision:nextRev,data:db,updated_at:new Date().toISOString()};const {error}=await cloudClient.from('app_state').upsert(payload,{onConflict:'user_id'});if(error)throw error;cloudRevision=nextRev;cloudLastUpdated=payload.updated_at;setCloudStatus('☁️ Synced securely • '+new Date().toLocaleString('en-GB'));}catch(e){setCloudStatus('⚠️ Cloud sync error: '+e.message);}finally{cloudSyncing=false;}}
-async function cloudLoad(){if(!cloudClient||!cloudSession)return;try{const uid=cloudSession.user.id;const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();if(error)throw error;if(row?.data){db=habMergeDb(db||makeDefaultDb(),row.data);cloudRevision=Number(row.revision||0);cloudLastUpdated=row.updated_at;ensureMasterData();
- if(localStorage.getItem("HAB_KITCHEN_SYNC_V1")!=="done"){
-   setTimeout(()=>{
-     try{
-       syncExistingKitchenMovements(false);
-       localStorage.setItem("HAB_KITCHEN_SYNC_V1","done");
-     }catch(e){console.warn("Kitchen auto-sync migration:",e);}
-   },250);
- }
-localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));refreshAll();setCloudStatus('☁️ Master data loaded • '+new Date(row.updated_at).toLocaleString('en-GB'));}else{cloudRevision=0;await cloudSave();setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}}catch(e){setCloudStatus('⚠️ Could not load cloud data: '+e.message);}}
+async function cloudSave(){
+ if(!cloudClient||!cloudSession||cloudSyncing||PORTABLE_MODE)return;
+ cloudSyncing=true;
+ try{
+  const uid=cloudSession.user.id;
+  const {data:row,error:getErr}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();
+  if(getErr)throw getErr;
+  const serverRev=Number(row?.revision||0);
+  if(row?.data && serverRev>Number(cloudRevision||0)){
+    try{localStorage.setItem('HAB_PRE_CLOUD_LOCAL_BACKUP',JSON.stringify({at:new Date().toISOString(),data:db}));}catch(e){}
+    db=JSON.parse(JSON.stringify(row.data)); ensureMasterData();
+    cloudRevision=serverRev; cloudLastUpdated=row.updated_at;
+    localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db)); refreshAll();
+    setCloudStatus('☁️ Cloud master refreshed safely • '+new Date(row.updated_at).toLocaleString('en-GB')); return;
+  }
+  ensureMasterData();
+  try{localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));localStorage.setItem('HAB_LAST_SAFE_SNAPSHOT',JSON.stringify({at:new Date().toISOString(),data:db}));}catch(e){}
+  const nextRev=serverRev+1;
+  const payload={user_id:uid,revision:nextRev,data:db,updated_at:new Date().toISOString()};
+  const {error}=await cloudClient.from('app_state').upsert(payload,{onConflict:'user_id'}); if(error)throw error;
+  cloudRevision=nextRev; cloudLastUpdated=payload.updated_at;
+  setCloudStatus('☁️ Synced Securely • '+new Date().toLocaleString('en-GB'));
+ }catch(e){setCloudStatus('⚠️ Cloud sync error: '+e.message);} finally{cloudSyncing=false;}
+}
+async function cloudLoad(){
+ if(!cloudClient||!cloudSession)return;
+ try{
+  const uid=cloudSession.user.id;
+  const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle(); if(error)throw error;
+  if(row?.data){
+   try{localStorage.setItem('HAB_PRE_CLOUD_LOCAL_BACKUP',JSON.stringify({at:new Date().toISOString(),data:db}));}catch(e){}
+   db=JSON.parse(JSON.stringify(row.data)); cloudRevision=Number(row.revision||0); cloudLastUpdated=row.updated_at; ensureMasterData();
+   if(localStorage.getItem("HAB_KITCHEN_SYNC_V1")!=="done") setTimeout(()=>{try{syncExistingKitchenMovements(false);localStorage.setItem("HAB_KITCHEN_SYNC_V1","done");}catch(e){console.warn("Kitchen auto-sync migration:",e);}},250);
+   localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db)); refreshAll();
+   setCloudStatus('☁️ Cloud master loaded • '+new Date(row.updated_at).toLocaleString('en-GB'));
+  }else{cloudRevision=0;await cloudSave();setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}
+ }catch(e){setCloudStatus('⚠️ Could not load cloud data: '+e.message);}
+}
 async function cloudSignIn(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value; if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error)return alert(error.message);cloudSession=data.session;await cloudLoad();}
 async function cloudSignUp(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');if(password.length<8)return alert('Use a password of at least 8 characters.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signUp({email,password});if(error)return alert(error.message);if(data.session){cloudSession=data.session;await cloudLoad();}else setCloudStatus('Account created. Check your email to confirm the account, then Sign In.');}
 async function cloudSignOut(){if(cloudClient)await cloudClient.auth.signOut();cloudSession=null;cloudReady=false;setCloudStatus('Signed out. This device will keep its local backup.');}
@@ -2543,6 +2570,8 @@ function saveItem(){
   let i=itemById(editItemId);if(!i)return alert("Item not found.");
   const oldName=i.name,oldSupplier=i.supplier;
   Object.assign(i,data);
+  // Add/Edit Item is the master: Unit, Price, Conversion and Reorder follow into Stock Entry history for this item.
+  db.entries.forEach(e=>{if(e.item===oldName&&e.supplier===oldSupplier){e.category=data.category;e.unit=data.unit;e.price=+data.price||0;e.reorder=+data.reorder||0;e.conversion=data.conv||'';}});
   if(oldName!==data.name||oldSupplier!==data.supplier){
    db.entries.forEach(e=>{if(e.item===oldName&&e.supplier===oldSupplier){e.item=data.name;e.supplier=data.supplier;e.category=data.category;}});
    db.movements.forEach(m=>{if(m.item===oldName&&(!m.supplier||m.supplier===oldSupplier)){m.item=data.name;m.supplier=data.supplier;m.category=data.category;}});
@@ -2557,7 +2586,7 @@ function saveItem(){
   }
  }
  if(!db.suppliers.some(s=>s.toLowerCase()===supplier.toLowerCase()))db.suppliers.push(supplier);
- ensureMasterData();closeModals();refreshAll();
+ ensureMasterData();save();closeModals();refreshAll();
 }
 function deleteItem(id=editItemId){
  let i=itemById(id);if(!i)return;
@@ -2783,6 +2812,11 @@ function resetAll(){if(confirm('This will erase all local app data and restore t
 
 function closeModals(){document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));}
 window.addEventListener("resize",()=>{if(appReady&&$("documents").classList.contains("active"))initSig();});
+// Cross-device safety: sync when the app returns to foreground/online and periodically while open.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudSession){cloudLoad();}});
+window.addEventListener('online',()=>{if(cloudSession){cloudLoad();}});
+setInterval(()=>{if(cloudSession&&!document.hidden)cloudSave();},60000);
+
 (async function startup(){
  if(PORTABLE_BUNDLE && typeof PORTABLE_BUNDLE==='object'){db=PORTABLE_BUNDLE;}else{db=getLegacyDb()||makeDefaultDb();}
  // Auto-preserve older HAB browser data on every new app version.

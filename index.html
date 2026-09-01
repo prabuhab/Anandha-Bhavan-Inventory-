@@ -1219,7 +1219,7 @@ const $=id=>document.getElementById(id);
 let cloudClient=null, cloudSession=null, cloudRevision=0, cloudSyncing=false, cloudReady=false, cloudLastUpdated=null;
 function cloudCfg(){return {url:(localStorage.getItem('HAB_SUPABASE_URL')||'https://yisipcyzwhmruocqrwkv.supabase.co').trim(),key:(localStorage.getItem('HAB_SUPABASE_KEY')||'sb_publishable_jKjIYM8aJ4IDamba0Q9-Gg_3rcAgC50').trim()};}
 function setCloudStatus(msg){const el=$("cloudStatus");if(el)el.innerText=msg;}
-function initCloudClient(){const c=cloudCfg(); if(!c.url||!c.key||!window.supabase){cloudClient=null;return false;} try{cloudClient=window.supabase.createClient(c.url,c.key); return true;}catch(e){cloudClient=null;return false;}}
+function initCloudClient(){const c=cloudCfg(); if(!c.url||!c.key||!window.supabase){cloudClient=null;return false;} try{cloudClient=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}); return true;}catch(e){cloudClient=null;return false;}}
 async function cloudSave(){
  if(!cloudClient||!cloudSession||cloudSyncing||PORTABLE_MODE)return;
  cloudSyncing=true;
@@ -1258,7 +1258,7 @@ async function cloudLoad(){
   }else{cloudRevision=0;await cloudSave();setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}
  }catch(e){setCloudStatus('⚠️ Could not load cloud data: '+e.message);}
 }
-async function cloudSignIn(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value; if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error)return alert(error.message);cloudSession=data.session;await cloudLoad();}
+async function cloudSignIn(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value; if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);localStorage.setItem('HAB_CLOUD_EMAIL',email);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error)return alert(error.message);cloudSession=data.session;$("cloudPassword").value='';setCloudStatus('☁️ Signed in securely. This device will remember the session and auto-sync.');await cloudLoad();}
 async function cloudSignUp(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');if(password.length<8)return alert('Use a password of at least 8 characters.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signUp({email,password});if(error)return alert(error.message);if(data.session){cloudSession=data.session;await cloudLoad();}else setCloudStatus('Account created. Check your email to confirm the account, then Sign In.');}
 async function cloudSignOut(){if(cloudClient)await cloudClient.auth.signOut();cloudSession=null;cloudReady=false;setCloudStatus('Signed out. This device will keep its local backup.');}
 function save(){try{localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));}catch(e){console.warn(e);} cloudSave();}
@@ -2822,8 +2822,8 @@ setInterval(()=>{if(cloudSession&&!document.hidden)cloudSave();},60000);
  // Auto-preserve older HAB browser data on every new app version.
  try{for(const x of habFindLegacyLocalDatabases())db=habMergeDb(db,x.data);}catch(e){console.warn('Legacy merge:',e);}
  ensureMasterData(); localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db)); refreshAll(); setTimeout(initSig,200);
- const cfg=cloudCfg();if(cfg.url&&cfg.key&&initCloudClient()){cloudClient.auth.onAuthStateChange((event,session)=>{cloudSession=session;if(session){setTimeout(()=>cloudLoad(),0);}else{setCloudStatus('Cloud configured but not signed in.');}});const sess=await cloudClient.auth.getSession();cloudSession=sess.data.session;if(cloudSession)await cloudLoad();}
- if($("cloudUrl")){const c=cloudCfg();$("cloudUrl").value=c.url;$("cloudKey").value=c.key;}
+ const cfg=cloudCfg();if(cfg.url&&cfg.key&&initCloudClient()){cloudClient.auth.onAuthStateChange((event,session)=>{cloudSession=session;if(session){setTimeout(()=>cloudLoad(),0);}else{setCloudStatus('Cloud configured but not signed in.');}});const sess=await cloudClient.auth.getSession();cloudSession=sess.data.session;if(cloudSession){localStorage.setItem('HAB_CLOUD_EMAIL',cloudSession.user?.email||localStorage.getItem('HAB_CLOUD_EMAIL')||'');await cloudLoad();}}
+ if($("cloudUrl")){const c=cloudCfg();$("cloudUrl").value=c.url;$("cloudKey").value=c.key;$("cloudEmail").value=(localStorage.getItem('HAB_CLOUD_EMAIL')||'').trim();}
  if(PORTABLE_MODE || PORTABLE_BUNDLE){setTimeout(()=>alert('Creator permission notice: Please use this Anandha Bhavan inventory only with permission from its creator/owner.'),250);}
 })();
 </script>

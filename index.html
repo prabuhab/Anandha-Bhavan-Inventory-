@@ -1216,52 +1216,88 @@ function ensureMasterData(){
 }
 let editEntryId=null, editItemId=null, editSupplierName=null, editMovementId=null, editSaleId=null;
 const $=id=>document.getElementById(id);
-let cloudClient=null, cloudSession=null, cloudRevision=0, cloudSyncing=false, cloudReady=false, cloudLastUpdated=null;
+let cloudClient=null, cloudSession=null, cloudRevision=0, cloudSyncing=false, cloudReady=false, cloudLastUpdated=null, cloudDirty=false;
+const HAB_CLOUD_BASE_KEY='HAB_CLOUD_BASE_SNAPSHOT_V2';
 function cloudCfg(){return {url:(localStorage.getItem('HAB_SUPABASE_URL')||'https://yisipcyzwhmruocqrwkv.supabase.co').trim(),key:(localStorage.getItem('HAB_SUPABASE_KEY')||'sb_publishable_jKjIYM8aJ4IDamba0Q9-Gg_3rcAgC50').trim()};}
 function setCloudStatus(msg){const el=$("cloudStatus");if(el)el.innerText=msg;}
 function initCloudClient(){const c=cloudCfg(); if(!c.url||!c.key||!window.supabase){cloudClient=null;return false;} try{cloudClient=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}); return true;}catch(e){cloudClient=null;return false;}}
-async function cloudSave(){
+function habClone(x){return JSON.parse(JSON.stringify(x));}
+function habGetCloudBase(){try{const x=JSON.parse(localStorage.getItem(HAB_CLOUD_BASE_KEY)||'null');return x&&typeof x==='object'?x:null;}catch(e){return null;}}
+function habSetCloudBase(x){try{localStorage.setItem(HAB_CLOUD_BASE_KEY,JSON.stringify(x));}catch(e){}}
+function habSame(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function habApplyArrayDelta(server,base,local,key='id'){
+ server=Array.isArray(server)?server:[]; base=Array.isArray(base)?base:[]; local=Array.isArray(local)?local:[];
+ const validId=x=>x&&typeof x==='object'&&x[key]!=null&&String(x[key])!=='';
+ if(!local.every(validId)||!base.every(validId)||!server.every(validId)) return server;
+ const bm=new Map(base.map(x=>[String(x[key]),x])), lm=new Map(local.map(x=>[String(x[key]),x]));
+ const out=new Map(server.map(x=>[String(x[key]),habClone(x)]));
+ // Apply only changes made on THIS device since its last cloud snapshot.
+ for(const [id,l] of lm){const b=bm.get(id); if(!b || !habSame(l,b)) out.set(id,habClone(l));}
+ // Apply deletions made on THIS device since its last cloud snapshot.
+ for(const [id] of bm){if(!lm.has(id))out.delete(id);}
+ return [...out.values()];
+}
+function habApplyStringArrayDelta(server,base,local){
+ server=Array.isArray(server)?server:[]; base=Array.isArray(base)?base:[]; local=Array.isArray(local)?local:[];
+ const norm=x=>String(x||'').trim().toLowerCase();
+ const out=new Map(server.filter(Boolean).map(x=>[norm(x),x]));
+ const b=new Map(base.filter(Boolean).map(x=>[norm(x),x]));
+ const l=new Map(local.filter(Boolean).map(x=>[norm(x),x]));
+ for(const [k,v] of l){if(!b.has(k))out.set(k,v);}
+ for(const [k] of b){if(!l.has(k))out.delete(k);}
+ return [...out.values()].sort((a,b)=>String(a).localeCompare(String(b),undefined,{sensitivity:'base',numeric:true}));
+}
+function habApplyLocalDeltaToServer(server,base,local){
+ const result=habClone(server||makeDefaultDb()); base=base||server||makeDefaultDb(); local=local||base;
+ const arrays=['items','entries','movements','sales','docs','signatures','feedback','cateringOrders','vendorOrders'];
+ arrays.forEach(k=>{result[k]=habApplyArrayDelta(result[k],base[k],local[k],'id');});
+ result.suppliers=habApplyStringArrayDelta(result.suppliers,base.suppliers,local.suppliers);
+ const bs=base.settings||{}, ls=local.settings||{}, ss=result.settings||{}; result.settings={...ss};
+ for(const k of new Set([...Object.keys(bs),...Object.keys(ls)])){if(!habSame(ls[k],bs[k]))result.settings[k]=habClone(ls[k]);}
+ return result;
+}
+async function cloudSave(force=false){
  if(!cloudClient||!cloudSession||cloudSyncing||PORTABLE_MODE)return;
+ if(!cloudDirty&&!force)return;
  cloudSyncing=true;
  try{
   const uid=cloudSession.user.id;
   const {data:row,error:getErr}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle();
   if(getErr)throw getErr;
-  const serverRev=Number(row?.revision||0);
+  const serverRev=Number(row?.revision||0), serverData=row?.data?habClone(row.data):makeDefaultDb();
+  let outgoing=habClone(db);
   if(row?.data && serverRev>Number(cloudRevision||0)){
-    try{localStorage.setItem('HAB_PRE_CLOUD_LOCAL_BACKUP',JSON.stringify({at:new Date().toISOString(),data:db}));}catch(e){}
-    db=JSON.parse(JSON.stringify(row.data)); ensureMasterData();
-    cloudRevision=serverRev; cloudLastUpdated=row.updated_at;
-    localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db)); refreshAll();
-    setCloudStatus('☁️ Cloud master refreshed safely • '+new Date(row.updated_at).toLocaleString('en-GB')); return;
+    const base=habGetCloudBase();
+    if(base) outgoing=habApplyLocalDeltaToServer(serverData,base,db);
+    else outgoing=serverData; // no trustworthy base: never overwrite newer cloud blindly
   }
-  ensureMasterData();
+  db=outgoing; ensureMasterData();
   try{localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));localStorage.setItem('HAB_LAST_SAFE_SNAPSHOT',JSON.stringify({at:new Date().toISOString(),data:db}));}catch(e){}
-  const nextRev=serverRev+1;
-  const payload={user_id:uid,revision:nextRev,data:db,updated_at:new Date().toISOString()};
+  const nextRev=serverRev+1, payload={user_id:uid,revision:nextRev,data:db,updated_at:new Date().toISOString()};
   const {error}=await cloudClient.from('app_state').upsert(payload,{onConflict:'user_id'}); if(error)throw error;
-  cloudRevision=nextRev; cloudLastUpdated=payload.updated_at;
-  setCloudStatus('☁️ Synced Securely • '+new Date().toLocaleString('en-GB'));
+  cloudRevision=nextRev; cloudLastUpdated=payload.updated_at; cloudDirty=false; habSetCloudBase(habClone(db));
+  refreshAll(); setCloudStatus('☁️ Auto-synced across devices • '+new Date().toLocaleString('en-GB'));
  }catch(e){setCloudStatus('⚠️ Cloud sync error: '+e.message);} finally{cloudSyncing=false;}
 }
 async function cloudLoad(){
- if(!cloudClient||!cloudSession)return;
+ if(!cloudClient||!cloudSession||cloudSyncing)return;
  try{
   const uid=cloudSession.user.id;
   const {data:row,error}=await cloudClient.from('app_state').select('revision,updated_at,data').eq('user_id',uid).maybeSingle(); if(error)throw error;
   if(row?.data){
+   if(cloudDirty){await cloudSave(true);return;}
    try{localStorage.setItem('HAB_PRE_CLOUD_LOCAL_BACKUP',JSON.stringify({at:new Date().toISOString(),data:db}));}catch(e){}
-   db=JSON.parse(JSON.stringify(row.data)); cloudRevision=Number(row.revision||0); cloudLastUpdated=row.updated_at; ensureMasterData();
+   db=habClone(row.data); cloudRevision=Number(row.revision||0); cloudLastUpdated=row.updated_at; ensureMasterData(); cloudDirty=false; habSetCloudBase(habClone(db));
    if(localStorage.getItem("HAB_KITCHEN_SYNC_V1")!=="done") setTimeout(()=>{try{syncExistingKitchenMovements(false);localStorage.setItem("HAB_KITCHEN_SYNC_V1","done");}catch(e){console.warn("Kitchen auto-sync migration:",e);}},250);
    localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db)); refreshAll();
    setCloudStatus('☁️ Cloud master loaded • '+new Date(row.updated_at).toLocaleString('en-GB'));
-  }else{cloudRevision=0;await cloudSave();setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}
+  }else{cloudRevision=0;cloudDirty=true;await cloudSave(true);setCloudStatus('☁️ Your local master data has been uploaded to your private cloud.');}
  }catch(e){setCloudStatus('⚠️ Could not load cloud data: '+e.message);}
 }
 async function cloudSignIn(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value; if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);localStorage.setItem('HAB_CLOUD_EMAIL',email);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error)return alert(error.message);cloudSession=data.session;$("cloudPassword").value='';setCloudStatus('☁️ Signed in securely. This device will remember the session and auto-sync.');await cloudLoad();}
 async function cloudSignUp(){const url=$("cloudUrl").value.trim(),key=$("cloudKey").value.trim(),email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!url||!key||!email||!password)return alert('Please enter Project URL, Anon Key, email and password.');if(password.length<8)return alert('Use a password of at least 8 characters.');localStorage.setItem('HAB_SUPABASE_URL',url);localStorage.setItem('HAB_SUPABASE_KEY',key);if(!initCloudClient())return alert('Cloud configuration is invalid.');const {data,error}=await cloudClient.auth.signUp({email,password});if(error)return alert(error.message);if(data.session){cloudSession=data.session;await cloudLoad();}else setCloudStatus('Account created. Check your email to confirm the account, then Sign In.');}
 async function cloudSignOut(){if(cloudClient)await cloudClient.auth.signOut();cloudSession=null;cloudReady=false;setCloudStatus('Signed out. This device will keep its local backup.');}
-function save(){try{localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));}catch(e){console.warn(e);} cloudSave();}
+function save(){try{localStorage.setItem(HAB_STORAGE_KEY,JSON.stringify(db));}catch(e){console.warn(e);} cloudDirty=true; cloudSave(true);}
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function money(x){return "£"+(Number(x)||0).toLocaleString("en-GB",{minimumFractionDigits:2,maximumFractionDigits:2});}
 function used(e){return e.kitchen!==undefined?(+e.kitchen||0):kitchenMovementFor(e);}
@@ -2593,7 +2629,7 @@ function deleteItem(id=editItemId){
  let history=db.entries.some(e=>e.item===i.name&&e.supplier===i.supplier)||db.movements.some(m=>m.item===i.name);
  let msg=history?`Remove "${i.name}" from the master inventory? Historical stock/movement records will be kept, but the item will no longer appear for new entries.`:`Remove "${i.name}" from the master inventory?`;
  if(!confirm(msg))return;
- db.items=db.items.filter(x=>x.id!==id);ensureMasterData();closeModals();refreshAll();
+ db.items=db.items.filter(x=>x.id!==id);ensureMasterData();save();closeModals();refreshAll();
 }
 function renderSuppliers(){
  let suppliers=db.suppliers.slice().sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:"base",numeric:true}));
@@ -2624,14 +2660,14 @@ function saveSupplier(){
   if(existing)return alert("This supplier already exists.");
   db.suppliers.push(name);
  }
- ensureMasterData();closeModals();refreshAll();
+ ensureMasterData();save();closeModals();refreshAll();
 }
 function deleteSupplier(name=editSupplierName){
  if(!name)return;
  let count=db.items.filter(i=>i.supplier===name).length;
  if(count>0)return alert(`Cannot remove "${name}" yet. It still has ${count} inventory item${count===1?"":"s"}. Edit/reassign or remove those items first.`);
  if(!confirm(`Remove supplier "${name}"?`))return;
- db.suppliers=db.suppliers.filter(s=>s!==name);ensureMasterData();closeModals();refreshAll();
+ db.suppliers=db.suppliers.filter(s=>s!==name);ensureMasterData();save();closeModals();refreshAll();
 }
 function exportItems(){let rows=[["ID","Supplier","Category","Item","Unit","Purchase Price £","Conversion","Reorder Level","Notes"],...sortedItems().map(i=>[i.id,i.supplier,i.category,i.name,i.unit,i.price,i.conv,i.reorder,i.notes])];downloadCSV(rows,"HAB_Master_Price_Book.csv");}
 function exportCSV(){let rows=[["Date","Time","Frequency","Supplier","Item","Category","Unit","Opening","Received","Kitchen Movement","Closing","Used","Book Price £","Closing Value £","Used Value £","Remarks"],...db.entries.map(e=>[e.date,e.time,e.frequency,e.supplier,e.item,e.category,e.unit,e.open,e.received,kitchenMovementFor(e),e.close,used(e),e.price,(e.close*e.price).toFixed(2),(used(e)*e.price).toFixed(2),e.remark||""])];downloadCSV(rows,"HAB_Stock_Register.csv");}
@@ -2813,9 +2849,9 @@ function resetAll(){if(confirm('This will erase all local app data and restore t
 function closeModals(){document.querySelectorAll(".modal").forEach(m=>m.classList.remove("show"));}
 window.addEventListener("resize",()=>{if(appReady&&$("documents").classList.contains("active"))initSig();});
 // Cross-device safety: sync when the app returns to foreground/online and periodically while open.
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudSession){cloudLoad();}});
-window.addEventListener('online',()=>{if(cloudSession){cloudLoad();}});
-setInterval(()=>{if(cloudSession&&!document.hidden)cloudSave();},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&cloudSession){cloudDirty?cloudSave(true):cloudLoad();}});
+window.addEventListener('online',()=>{if(cloudSession){cloudDirty?cloudSave(true):cloudLoad();}});
+setInterval(()=>{if(cloudSession&&!document.hidden){cloudDirty?cloudSave(true):cloudLoad();}},45000);
 
 (async function startup(){
  if(PORTABLE_BUNDLE && typeof PORTABLE_BUNDLE==='object'){db=PORTABLE_BUNDLE;}else{db=getLegacyDb()||makeDefaultDb();}
@@ -2991,5 +3027,33 @@ async function habConfirmAllScannedLines(){
 }
 </script>
 
-</body>
+\n<script id="habPermanentCloudConfigV2">
+(function(){
+  const DEF_URL='https://yisipcyzwhmruocqrwkv.supabase.co';
+  const DEF_KEY='sb_publishable_jKjIYM8aJ4IDamba0Q9-Gg_3rcAgC50';
+  function getCookie(n){for(const part of document.cookie.split(';')){const p=part.trim();if(p.startsWith(n+'='))return decodeURIComponent(p.slice(n.length+1));}return '';}
+  function setCookie(n,v){document.cookie=n+'='+encodeURIComponent(v)+'; Max-Age=31536000; Path=/; SameSite=Lax; Secure';}
+  function persist(){
+    const u=document.getElementById('cloudUrl'),k=document.getElementById('cloudKey'),e=document.getElementById('cloudEmail');
+    try{
+      if(u&&u.value.trim()){localStorage.setItem('HAB_SUPABASE_URL',u.value.trim());setCookie('HAB_SUPABASE_URL',u.value.trim());}
+      if(k&&k.value.trim()){localStorage.setItem('HAB_SUPABASE_KEY',k.value.trim());setCookie('HAB_SUPABASE_KEY',k.value.trim());}
+      if(e&&e.value.trim()){localStorage.setItem('HAB_CLOUD_EMAIL',e.value.trim());setCookie('HAB_CLOUD_EMAIL',e.value.trim());}
+    }catch(_){}
+  }
+  function fill(){
+    const u=document.getElementById('cloudUrl'),k=document.getElementById('cloudKey'),e=document.getElementById('cloudEmail');
+    let su='',sk='',se='';
+    try{su=localStorage.getItem('HAB_SUPABASE_URL')||'';sk=localStorage.getItem('HAB_SUPABASE_KEY')||'';se=localStorage.getItem('HAB_CLOUD_EMAIL')||'';}catch(_){}
+    su=su||getCookie('HAB_SUPABASE_URL')||DEF_URL; sk=sk||getCookie('HAB_SUPABASE_KEY')||DEF_KEY; se=se||getCookie('HAB_CLOUD_EMAIL')||'';
+    if(u&&!u.value.trim())u.value=su; if(k&&!k.value.trim())k.value=sk; if(e&&!e.value.trim())e.value=se;
+    [u,k,e].forEach(x=>{if(x){x.addEventListener('change',persist);x.addEventListener('blur',persist);}});
+    persist();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fill);else fill();
+  window.addEventListener('pageshow',fill);
+  const old=window.cloudSignIn;
+  if(typeof old==='function')window.cloudSignIn=async function(){persist();const r=await old.apply(this,arguments);persist();return r;};
+})();
+</script>\n</body>
 </html>
